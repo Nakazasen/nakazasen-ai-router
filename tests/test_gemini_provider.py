@@ -98,12 +98,15 @@ def test_live_smoke_argparse_accepts_gemini(monkeypatch):
 
 GEMINI_MODELS = (
     "gemini-3.5-flash",
+    "gemini-flash-latest",
+    "gemini-flash-lite-latest",
     "gemini-3.1-flash-lite",
+    "gemini-3.1-flash-lite-preview",
     "gemini-2.5-flash",
     "gemini-2.5-flash-lite",
     "gemini-3-flash-preview",
-    "gemini-flash-latest",
     "gemini-robotics-er-1.6-preview",
+    "gemma-4-31b-it",
 )
 
 
@@ -131,3 +134,12 @@ def test_live_smoke_test_all_models_with_mock(tmp_path: Path):
 
     assert [row["model"] for row in rows] == list(GEMINI_MODELS)
     assert {row["status"] for row in rows} == {"PASS"}
+
+
+def test_additional_live_pass_gemini_models_are_enabled():
+    models = PROVIDER_REGISTRY["gemini"].default_models
+
+    assert "gemini-flash-lite-latest" in models
+    assert "gemini-3.1-flash-lite-preview" in models
+    assert "gemma-4-31b-it" in models
+    assert models[-1] == "gemma-4-31b-it"

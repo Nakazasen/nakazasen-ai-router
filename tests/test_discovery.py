@@ -90,10 +90,13 @@ def test_discovery_does_not_print_key(capsys):
 def test_gemini_default_models_are_live_pass_only():
     assert PROVIDER_REGISTRY["gemini"].default_models == (
         "gemini-3.5-flash",
+        "gemini-flash-latest",
+        "gemini-flash-lite-latest",
         "gemini-3.1-flash-lite",
+        "gemini-3.1-flash-lite-preview",
         "gemini-2.5-flash",
         "gemini-2.5-flash-lite",
         "gemini-3-flash-preview",
-        "gemini-flash-latest",
         "gemini-robotics-er-1.6-preview",
+        "gemma-4-31b-it",
     )
