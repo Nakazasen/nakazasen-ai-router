@@ -23,15 +23,15 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         api_key_env_var="OPENROUTER_API_KEY",
         default_models=("meta-llama/llama-3.3-70b-instruct:free",),
         is_cloud=True,
-        note="OpenRouter gom nhiều model OpenAI-compatible qua một endpoint.",
+        note="OpenRouter gom nhi盻「 model OpenAI-compatible qua m盻冲 endpoint.",
     ),
     "groq": ProviderProfile(
         name="groq",
         base_url="https://api.groq.com/openai/v1",
         api_key_env_var="GROQ_API_KEY",
-        default_models=("llama3-8b-8192",),
+        default_models=("llama-3.1-8b-instant",),
         is_cloud=True,
-        note="Groq phù hợp tác vụ cần phản hồi nhanh.",
+        note="Groq phﾃｹ h盻｣p tﾃ｡c v盻･ c蘯ｧn ph蘯｣n h盻妬 nhanh.",
     ),
     "deepseek": ProviderProfile(
         name="deepseek",
@@ -47,7 +47,7 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         api_key_env_var="NVIDIA_NIM_API_KEY",
         default_models=("meta/llama-3.1-8b-instruct",),
         is_cloud=True,
-        note="NVIDIA NIM cung cấp nhiều model inference qua API tương thích OpenAI.",
+        note="NVIDIA NIM cung c蘯･p nhi盻「 model inference qua API tﾆｰﾆ｡ng thﾃｭch OpenAI.",
     ),
     "chatanywhere": ProviderProfile(
         name="chatanywhere",
@@ -55,7 +55,7 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         api_key_env_var="CHATANYWHERE_API_KEY",
         default_models=("gpt-4o-mini",),
         is_cloud=True,
-        note="ChatAnyWhere là endpoint OpenAI-compatible bên thứ ba.",
+        note="ChatAnyWhere lﾃ endpoint OpenAI-compatible bﾃｪn th盻ｩ ba.",
     ),
     "mistral": ProviderProfile(
         name="mistral",
@@ -63,7 +63,7 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         api_key_env_var="MISTRAL_API_KEY",
         default_models=("mistral-small-latest",),
         is_cloud=True,
-        note="Mistral API dùng được qua adapter OpenAI-compatible.",
+        note="Mistral API dﾃｹng ﾄ柁ｰ盻｣c qua adapter OpenAI-compatible.",
     ),
     "local_openai_compatible": ProviderProfile(
         name="local_openai_compatible",
@@ -72,6 +72,6 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         base_url_env_var="LOCAL_OPENAI_COMPATIBLE_BASE_URL",
         default_models=("local-model",),
         is_cloud=False,
-        note="Server local tương thích OpenAI, có thể dùng không cần API key.",
+        note="Server local tﾆｰﾆ｡ng thﾃｭch OpenAI, cﾃｳ th盻・dﾃｹng khﾃｴng c蘯ｧn API key.",
     ),
 }

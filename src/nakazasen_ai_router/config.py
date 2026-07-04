@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from .core import AIRouter, RouterPolicy
@@ -11,25 +11,26 @@ from .http import UrllibHTTPClient
 from .providers import OpenAICompatibleProvider
 from .registry import PROVIDER_REGISTRY, ProviderProfile
 
+LIVE_FREE_FIRST_ORDER = ("deepseek", "nvidia_nim", "chatanywhere", "mistral", "openrouter", "groq")
+
 
 def create_router_from_env(
     *,
     env: Mapping[str, str] | None = None,
-    provider_names: list[str] | tuple[str, ...] | None = None,
+    provider_names: Sequence[str] | None = None,
     http_client_factory: Any | None = None,
     policy: RouterPolicy | None = None,
     enable_network: bool = False,
+    strategy: str | None = None,
 ) -> AIRouter:
     """Create an AIRouter from environment variables only.
 
-    Cloud providers are skipped when their API key environment variable is
-    missing. The local OpenAI-compatible provider is allowed without a key when
-    its base URL points to localhost/127.0.0.1. Network I/O is disabled unless
-    the caller supplies `http_client_factory` or sets `enable_network=True`.
+    `strategy="live_free_first"` reorders providers for live smoke usage but
+    never enables network by itself.
     """
 
     source_env = env or os.environ
-    selected_names = provider_names or tuple(PROVIDER_REGISTRY.keys())
+    selected_names = _resolve_provider_names(provider_names, strategy)
     providers = []
     for name in selected_names:
         profile = PROVIDER_REGISTRY.get(name)
@@ -44,6 +45,24 @@ def create_router_from_env(
         if provider is not None:
             providers.append(provider)
     return AIRouter(providers, policy=policy)
+
+
+def _resolve_provider_names(provider_names: Sequence[str] | None, strategy: str | None) -> tuple[str, ...]:
+    if strategy is None:
+        return tuple(provider_names or PROVIDER_REGISTRY.keys())
+    if strategy != "live_free_first":
+        raise ValueError(f"Unknown router strategy: {strategy}")
+    names = tuple(provider_names or PROVIDER_REGISTRY.keys())
+    name_set = set(names)
+    ordered = tuple(name for name in LIVE_FREE_FIRST_ORDER if name in name_set)
+    remainder = tuple(name for name in names if name not in ordered)
+    return ordered + remainder
+
+
+def create_live_free_first_router_from_env(**kwargs: Any) -> AIRouter:
+    """Convenience wrapper for the live_free_first strategy."""
+
+    return create_router_from_env(strategy="live_free_first", **kwargs)
 
 
 def build_provider_from_profile(
