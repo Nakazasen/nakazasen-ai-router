@@ -1,26 +1,16 @@
-﻿# Roadmap
+# Roadmap
 
-## Giai đoạn 1: Nền móng hiện tại
+## Gate 14 proposal
 
-- Tạo cấu trúc repo Python sạch.
-- Định nghĩa API router tối thiểu.
-- Tạo provider giả lập để chứng minh hành vi fallback và bảo mật.
-- Chưa gọi AI thật.
+1. Health scoreboard for provider/model status.
+2. Last known good model cache.
+3. Model ranking from live smoke results.
+4. Provider/model alias registry with `providerId:modelId` parsing.
+5. AIOS privacy policy adapter design, without AIOS integration.
 
-## Giai đoạn 2: Port từ translation_app
+## Later gates
 
-- Port Provider Router hiện có sang package này.
-- Chuẩn hoá lỗi provider thành nhóm: quota, auth, timeout, transient.
-- Bổ sung cấu hình ưu tiên provider theo mục đích sử dụng.
-
-## Giai đoạn 3: Provider thật
-
-- Thêm adapter provider thật sau khi có thiết kế bảo mật riêng.
-- Đọc API key từ biến môi trường hoặc secret manager, không đọc từ file commit vào repo.
-- Bổ sung test tích hợp có thể bật/tắt bằng cờ riêng.
-
-## Giai đoạn 4: Vận hành
-
-- Theo dõi health provider.
-- Ghi metric an toàn, không log prompt nhạy cảm hoặc API key.
-- Tài liệu hoá cách debug cho non-tech user.
+- Gate 15: retry with capped backoff and cost/free-first policy metadata.
+- Gate 16: circuit breaker and privacy enforcement hooks.
+- Gate 17: token accounting and cost estimate metadata.
+- Later: optional proxy server only if a real integration requires it.
