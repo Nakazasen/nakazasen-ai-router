@@ -102,6 +102,7 @@ GEMINI_MODELS = (
     "gemini-2.5-flash",
     "gemini-2.5-flash-lite",
     "gemini-3-flash-preview",
+    "gemini-flash-latest",
     "gemma-4-31b-it",
     "gemma-4-26b-a4b-it",
     "gemini-robotics-er-1.5-preview",
