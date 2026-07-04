@@ -21,7 +21,7 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         name="gemini",
         base_url="https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
         api_key_env_var="GEMINI_API_KEY",
-        default_models=("gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3-flash-preview", "gemini-flash-latest", "gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-robotics-er-1.5-preview", "gemini-robotics-er-1.6-preview", "gemma-3-1b-it", "gemma-3-4b-it", "gemma-3-12b-it", "gemma-3-27b-it", "gemma-3n-e4b-it", "gemma-3n-e2b-it"),
+        default_models=("gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3-flash-preview", "gemini-flash-latest", "gemini-robotics-er-1.6-preview"),
         is_cloud=True,
         note="Gemini API qua endpoint OpenAI-compatible.",
     ),
@@ -31,7 +31,7 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         api_key_env_var="OPENROUTER_API_KEY",
         default_models=("meta-llama/llama-3.3-70b-instruct:free",),
         is_cloud=True,
-        note="OpenRouter gom nhi鬨ｾ・ｶ繝ｻ・ｻ驍ｵ・ｲ郢晢ｽｻmodel OpenAI-compatible qua m鬨ｾ・ｶ繝ｻ・ｻ髯ｷﾂ繝ｻ・ｲ endpoint.",
+        note="OpenRouter gom nhi鬯ｨ・ｾ繝ｻ・ｶ郢晢ｽｻ繝ｻ・ｻ鬩搾ｽｵ繝ｻ・ｲ驛｢譎｢・ｽ・ｻmodel OpenAI-compatible qua m鬯ｨ・ｾ繝ｻ・ｶ郢晢ｽｻ繝ｻ・ｻ鬮ｯ・ｷ・つ郢晢ｽｻ繝ｻ・ｲ endpoint.",
     ),
     "groq": ProviderProfile(
         name="groq",
@@ -39,7 +39,7 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         api_key_env_var="GROQ_API_KEY",
         default_models=("llama-3.1-8b-instant",),
         is_cloud=True,
-        note="Groq ph郢晢ｽｻ郢晢ｽｻ繝ｻ・ｽ繝ｻ・ｹ h鬨ｾ・ｶ繝ｻ・ｻ郢晢ｽｻ繝ｻ・｣p t郢晢ｽｻ郢晢ｽｻ繝ｻ・ｽ繝ｻ・｡c v鬨ｾ・ｶ繝ｻ・ｻ郢晢ｽｻ繝ｻ・･ c鬮ｯ繧托ｽｽ・ｯ郢晢ｽｻ繝ｻ・ｧn ph鬮ｯ繧托ｽｽ・ｯ郢晢ｽｻ繝ｻ・｣n h鬨ｾ・ｶ繝ｻ・ｻ髯橸ｽｯ繝ｻ・ｬ nhanh.",
+        note="Groq ph驛｢譎｢・ｽ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・ｽ郢晢ｽｻ繝ｻ・ｹ h鬯ｨ・ｾ繝ｻ・ｶ郢晢ｽｻ繝ｻ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・｣p t驛｢譎｢・ｽ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・ｽ郢晢ｽｻ繝ｻ・｡c v鬯ｨ・ｾ繝ｻ・ｶ郢晢ｽｻ繝ｻ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・･ c鬯ｮ・ｯ郢ｧ謇假ｽｽ・ｽ繝ｻ・ｯ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・ｧn ph鬯ｮ・ｯ郢ｧ謇假ｽｽ・ｽ繝ｻ・ｯ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・｣n h鬯ｨ・ｾ繝ｻ・ｶ郢晢ｽｻ繝ｻ・ｻ鬮ｯ讖ｸ・ｽ・ｯ郢晢ｽｻ繝ｻ・ｬ nhanh.",
     ),
     "deepseek": ProviderProfile(
         name="deepseek",
@@ -55,7 +55,7 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         api_key_env_var="NVIDIA_NIM_API_KEY",
         default_models=("meta/llama-3.1-8b-instruct",),
         is_cloud=True,
-        note="NVIDIA NIM cung c鬮ｯ繧托ｽｽ・ｯ郢晢ｽｻ繝ｻ・･p nhi鬨ｾ・ｶ繝ｻ・ｻ驍ｵ・ｲ郢晢ｽｻmodel inference qua API t郢晢ｽｻ郢晢ｽｻ繝ｻ・ｽ繝ｻ・ｰ郢晢ｽｻ郢晢ｽｻ繝ｻ・ｽ繝ｻ・｡ng th郢晢ｽｻ郢晢ｽｻ繝ｻ・ｽ繝ｻ・ｭch OpenAI.",
+        note="NVIDIA NIM cung c鬯ｮ・ｯ郢ｧ謇假ｽｽ・ｽ繝ｻ・ｯ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・･p nhi鬯ｨ・ｾ繝ｻ・ｶ郢晢ｽｻ繝ｻ・ｻ鬩搾ｽｵ繝ｻ・ｲ驛｢譎｢・ｽ・ｻmodel inference qua API t驛｢譎｢・ｽ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・ｽ郢晢ｽｻ繝ｻ・ｰ驛｢譎｢・ｽ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・ｽ郢晢ｽｻ繝ｻ・｡ng th驛｢譎｢・ｽ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・ｽ郢晢ｽｻ繝ｻ・ｭch OpenAI.",
     ),
     "chatanywhere": ProviderProfile(
         name="chatanywhere",
@@ -63,7 +63,7 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         api_key_env_var="CHATANYWHERE_API_KEY",
         default_models=("gpt-4o-mini",),
         is_cloud=True,
-        note="ChatAnyWhere l郢晢ｽｻ郢晢ｽｻ繝ｻ・｣繝ｻ・ｰ endpoint OpenAI-compatible b郢晢ｽｻ郢晢ｽｻ繝ｻ・ｽ繝ｻ・ｪn th鬨ｾ・ｶ繝ｻ・ｻ郢晢ｽｻ繝ｻ・ｩ ba.",
+        note="ChatAnyWhere l驛｢譎｢・ｽ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・｣郢晢ｽｻ繝ｻ・ｰ endpoint OpenAI-compatible b驛｢譎｢・ｽ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・ｽ郢晢ｽｻ繝ｻ・ｪn th鬯ｨ・ｾ繝ｻ・ｶ郢晢ｽｻ繝ｻ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・ｩ ba.",
     ),
     "mistral": ProviderProfile(
         name="mistral",
@@ -71,7 +71,7 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         api_key_env_var="MISTRAL_API_KEY",
         default_models=("mistral-small-latest",),
         is_cloud=True,
-        note="Mistral API d郢晢ｽｻ郢晢ｽｻ繝ｻ・ｽ繝ｻ・ｹng 郢晢ｽｻ郢晢ｽｻ雎悟現繝ｻ繝ｻ・ｰ鬨ｾ・ｶ繝ｻ・ｻ郢晢ｽｻ繝ｻ・｣c qua adapter OpenAI-compatible.",
+        note="Mistral API d驛｢譎｢・ｽ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・ｽ郢晢ｽｻ繝ｻ・ｹng 驛｢譎｢・ｽ・ｻ驛｢譎｢・ｽ・ｻ髮取ぁ迴ｾ郢晢ｽｻ郢晢ｽｻ繝ｻ・ｰ鬯ｨ・ｾ繝ｻ・ｶ郢晢ｽｻ繝ｻ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・｣c qua adapter OpenAI-compatible.",
     ),
     "local_openai_compatible": ProviderProfile(
         name="local_openai_compatible",
@@ -80,6 +80,6 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         base_url_env_var="LOCAL_OPENAI_COMPATIBLE_BASE_URL",
         default_models=("local-model",),
         is_cloud=False,
-        note="Server local t郢晢ｽｻ郢晢ｽｻ繝ｻ・ｽ繝ｻ・ｰ郢晢ｽｻ郢晢ｽｻ繝ｻ・ｽ繝ｻ・｡ng th郢晢ｽｻ郢晢ｽｻ繝ｻ・ｽ繝ｻ・ｭch OpenAI, c郢晢ｽｻ郢晢ｽｻ繝ｻ・ｽ繝ｻ・ｳ th鬨ｾ・ｶ繝ｻ・ｻ驛｢譎｢・ｽ・ｻd郢晢ｽｻ郢晢ｽｻ繝ｻ・ｽ繝ｻ・ｹng kh郢晢ｽｻ郢晢ｽｻ繝ｻ・ｽ繝ｻ・ｴng c鬮ｯ繧托ｽｽ・ｯ郢晢ｽｻ繝ｻ・ｧn API key.",
+        note="Server local t驛｢譎｢・ｽ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・ｽ郢晢ｽｻ繝ｻ・ｰ驛｢譎｢・ｽ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・ｽ郢晢ｽｻ繝ｻ・｡ng th驛｢譎｢・ｽ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・ｽ郢晢ｽｻ繝ｻ・ｭch OpenAI, c驛｢譎｢・ｽ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・ｽ郢晢ｽｻ繝ｻ・ｳ th鬯ｨ・ｾ繝ｻ・ｶ郢晢ｽｻ繝ｻ・ｻ鬩幢ｽ｢隴趣ｽ｢繝ｻ・ｽ繝ｻ・ｻd驛｢譎｢・ｽ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・ｽ郢晢ｽｻ繝ｻ・ｹng kh驛｢譎｢・ｽ・ｻ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・ｽ郢晢ｽｻ繝ｻ・ｴng c鬯ｮ・ｯ郢ｧ謇假ｽｽ・ｽ繝ｻ・ｯ驛｢譎｢・ｽ・ｻ郢晢ｽｻ繝ｻ・ｧn API key.",
     ),
 }
