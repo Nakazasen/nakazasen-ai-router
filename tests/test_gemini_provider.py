@@ -123,7 +123,7 @@ def test_live_smoke_model_override_uses_requested_model(tmp_path: Path):
     from scripts.live_smoke import run_provider
 
     key_file = tmp_path / "keys.txt"
-    key_file.write_text("Gemini`nfake-gemini-key`n", encoding="utf-8")
+    key_file.write_text("Gemini\nfake-gemini-key\n", encoding="utf-8")
     row = run_provider("gemini", key_file, model="gemma-3-1b-it", http_client_factory=MockHTTPClient())
 
     assert row["status"] == "PASS"
