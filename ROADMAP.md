@@ -1,28 +1,41 @@
 # Roadmap
 
-## Gate 14 proposal
+## Current status
 
-1. Health scoreboard for provider/model status.
-2. Last known good model cache.
-3. Model ranking from live smoke results.
-4. Provider/model alias registry with `providerId:modelId` parsing.
-5. AIOS privacy policy adapter design, without AIOS integration.
+Nakazasen AI Router is a small Python router with:
 
-## Later gates
+- Core routing and fallback.
+- OpenAI-compatible provider adapter.
+- Provider registry and environment config.
+- Optional live smoke tests.
+- Gemini support, curated runtime catalog, and discovery script.
+- Health scoreboard and model aliases.
+- AIOS privacy policy adapter design.
 
-- Gate 15: retry with capped backoff and cost/free-first policy metadata.
-- Gate 16: circuit breaker and privacy enforcement hooks.
-- Gate 17: token accounting and cost estimate metadata.
-- Later: optional proxy server only if a real integration requires it.
+## Next gates
 
-## Gate 14 done scope
+### Gate 15 - AIOS_habbit integration design
 
-- Health scoreboard with safe JSON cache.
-- Last known good model lookup.
-- Model ranking from health/smoke metadata.
-- Provider/model alias parser with `providerId:modelId` syntax.
-- AIOS privacy policy adapter design without AIOS_habbit integration.
+Define the integration boundary before touching AIOS_habbit:
 
-## Gate 15 proposal
+- Request metadata contract.
+- Privacy labels and enforcement plan.
+- Mock integration plan.
+- Acceptance tests for local-only, cloud-safe, confidential, and unknown prompts.
 
-AIOS_habbit integration design gate: define integration boundary, request metadata contract, privacy enforcement plan, and local/cloud routing acceptance tests before touching the external app.
+### Gate 16 - AIOS_habbit MVP mock integration
+
+Build a mock-first integration path with no real provider calls by default.
+
+### Gate 17 - AIOS_habbit real-work pilot
+
+Run a controlled real-work pilot after privacy and mock tests pass.
+
+## Backlog
+
+- translation_app integration.
+- Retry with capped backoff.
+- Budget and cost metadata.
+- Token accounting when providers return usage.
+- Package release workflow.
+- Optional proxy server only if an integration truly needs it.

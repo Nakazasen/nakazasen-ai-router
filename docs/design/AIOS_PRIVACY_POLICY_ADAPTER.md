@@ -1,6 +1,6 @@
 # AIOS Privacy Policy Adapter Design
 
-Gate 14 only defines the policy boundary. It does not integrate AIOS_habbit and does not inspect raw AIOS evidence.
+Gate 14 defines the policy boundary only. It does not integrate AIOS_habbit and does not inspect raw AIOS evidence.
 
 ## Responsibility split
 
@@ -17,7 +17,7 @@ Gate 14 only defines the policy boundary. It does not integrate AIOS_habbit and 
 | `unknown` | Deny cloud | Unknown sensitivity should fail closed. |
 | `machine_only` | Deny cloud unless `allow_cloud=True` | Needs explicit consent before cloud. |
 | `cloud_safe` | Allow cloud | AIOS has sanitized the prompt for cloud. |
-| `public` | Allow cloud | Public/non-sensitive content. |
+| `public` | Allow cloud | Public or non-sensitive content. |
 
 ## Required metadata proposal
 
@@ -33,11 +33,11 @@ Gate 14 only defines the policy boundary. It does not integrate AIOS_habbit and 
 
 ## Hard rules
 
-- `local_only` -> deny cloud providers.
-- `confidential` -> deny cloud providers.
-- `unknown` -> deny cloud providers.
-- `machine_only` -> require explicit `allow_cloud=True`.
-- `cloud_safe` and `public` -> allow cloud providers.
+- `local_only` denies cloud providers.
+- `confidential` denies cloud providers.
+- `unknown` denies cloud providers.
+- `machine_only` requires explicit `allow_cloud=True`.
+- `cloud_safe` and `public` may use cloud providers.
 - Do not pass raw evidence to the router.
 - Do not pass raw company docs to the router.
 - Do not pass prompts containing confidential file contents to the router.
