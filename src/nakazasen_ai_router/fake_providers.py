@@ -1,20 +1,24 @@
-﻿"""Fake providers used by tests only.
+"""Fake providers used by tests only.
 
 These providers never call external AI services.
 """
 
 from __future__ import annotations
 
-from .core import AIRequest, AIResult, ProviderAuthError, ProviderBase, ProviderQuotaError, ProviderTimeoutError
+from .core import AIRequest, AIResult, ProviderAuthError, ProviderBase, ProviderCandidate, ProviderQuotaError, ProviderTimeoutError
 
 
 class FakeProvider(ProviderBase):
-    def __init__(self, name: str, *, mode: str, is_cloud: bool = False) -> None:
+    def __init__(self, name: str, *, mode: str, is_cloud: bool = False, candidates: list[ProviderCandidate] | None = None) -> None:
         super().__init__(name, is_cloud=is_cloud)
         self.mode = mode
         self.calls = 0
+        self._candidates = candidates
 
-    def generate(self, request: AIRequest) -> AIResult:
+    def iter_candidates(self) -> list[ProviderCandidate]:
+        return self._candidates or super().iter_candidates()
+
+    def generate(self, request: AIRequest, candidate: ProviderCandidate | None = None) -> AIResult:
         self.calls += 1
         if self.mode == "success":
             return AIResult(text=f"fake response from {self.name}", provider_name=self.name)
