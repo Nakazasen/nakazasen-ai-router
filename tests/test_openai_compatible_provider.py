@@ -39,7 +39,7 @@ def make_provider(http_client, *, api_keys=None, models=None):
     return OpenAICompatibleProvider(
         name="openai_like",
         base_url="https://example.test/v1",
-        api_keys=api_keys or ["sk-test-secret-1234"],
+        api_keys=api_keys or ["fake-test-secret-1234"],
         models=models or ["model-a"],
         is_cloud=True,
         http_client=http_client,
@@ -73,7 +73,7 @@ def test_messages_metadata_is_used_when_present():
 
 
 def test_authorization_header_used_but_key_not_in_result_attempts_or_logs(caplog):
-    raw_key = "sk-real-secret-value"
+    raw_key = "fake-real-secret-value"
     client = MockHTTPClient([success_response("ok")])
     provider = make_provider(client, api_keys=[raw_key])
     router = AIRouter([provider])
@@ -142,7 +142,7 @@ def test_timeout_classifies_timeout():
 
 def test_model_key_candidate_rotation_creates_cartesian_product_and_masks_keys():
     client = MockHTTPClient([])
-    provider = make_provider(client, api_keys=["sk-one-1111", "sk-two-2222"], models=["m1", "m2"])
+    provider = make_provider(client, api_keys=["fake-one-1111", "fake-two-2222"], models=["m1", "m2"])
 
     candidates = provider.iter_candidates()
 
@@ -152,8 +152,8 @@ def test_model_key_candidate_rotation_creates_cartesian_product_and_masks_keys()
         ("m2", 0, "****1111"),
         ("m2", 1, "****2222"),
     ]
-    assert "sk-one-1111" not in str(candidates)
-    assert "sk-two-2222" not in str(candidates)
+    assert "fake-one-1111" not in str(candidates)
+    assert "fake-two-2222" not in str(candidates)
 
 
 def test_prompt_not_in_attempts_by_default():

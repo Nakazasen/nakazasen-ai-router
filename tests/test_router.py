@@ -100,7 +100,7 @@ def test_api_key_is_not_logged(caplog):
             AIRequest(
                 prompt="hello",
                 metadata={
-                    "api_key": "sk-real-key-must-not-appear",
+                    "api_key": "fake-real-key-must-not-appear",
                     "nested": {"token": "secret-token-must-not-appear"},
                     "purpose": "test",
                 },
@@ -108,7 +108,7 @@ def test_api_key_is_not_logged(caplog):
         )
 
     logs = caplog.text
-    assert "sk-real-key-must-not-appear" not in logs
+    assert "fake-real-key-must-not-appear" not in logs
     assert "secret-token-must-not-appear" not in logs
     assert "[REDACTED]" in logs
 
@@ -170,7 +170,7 @@ def test_auth_disable_is_runtime_only_without_persisting_config():
 
 
 def test_key_id_is_masked_and_raw_key_not_visible():
-    raw = "sk-secret-1234567890"
+    raw = "fake-secret-1234567890"
     provider = CandidateProvider(
         "masked",
         [provider_success("unused").generate(AIRequest(prompt="x"))],
@@ -184,7 +184,7 @@ def test_key_id_is_masked_and_raw_key_not_visible():
 
 
 def test_attempts_do_not_contain_raw_api_key_or_prompt_by_default():
-    raw = "sk-secret-raw-key"
+    raw = "fake-secret-raw-key"
     provider_a = CandidateProvider(
         "quota",
         [ProviderError("429 quota")],

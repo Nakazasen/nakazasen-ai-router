@@ -28,7 +28,7 @@ class MockHTTPClient:
 def test_env_openrouter_key_creates_provider():
     client = MockHTTPClient()
     router = create_router_from_env(
-        env={"OPENROUTER_API_KEY": "sk-openrouter-secret"},
+        env={"OPENROUTER_API_KEY": "fake-openrouter-secret"},
         provider_names=("openrouter",),
         http_client_factory=client,
     )
@@ -39,7 +39,7 @@ def test_env_openrouter_key_creates_provider():
 def test_env_groq_key_creates_provider():
     client = MockHTTPClient()
     router = create_router_from_env(
-        env={"GROQ_API_KEY": "sk-groq-secret"},
+        env={"GROQ_API_KEY": "fake-groq-secret"},
         provider_names=("groq",),
         http_client_factory=client,
     )
@@ -65,7 +65,7 @@ def test_local_openai_compatible_can_be_created_without_key_for_local_base_url()
 
 
 def test_raw_api_key_not_in_router_repr_logs_or_attempts(caplog):
-    raw_key = "sk-openrouter-raw-secret"
+    raw_key = "fake-openrouter-raw-secret"
     client = MockHTTPClient()
     router = create_router_from_env(
         env={"OPENROUTER_API_KEY": raw_key},
@@ -91,7 +91,7 @@ def test_create_router_from_env_injects_mock_http_client_and_does_not_call_inter
         return client
 
     router = create_router_from_env(
-        env={"OPENROUTER_API_KEY": "sk-test-only"},
+        env={"OPENROUTER_API_KEY": "fake-test-only"},
         provider_names=("openrouter",),
         http_client_factory=factory,
     )
@@ -124,7 +124,7 @@ def test_registry_contains_expected_provider_profiles():
 
 def test_no_default_http_client_never_calls_internet():
     router = create_router_from_env(
-        env={"OPENROUTER_API_KEY": "sk-test-only"},
+        env={"OPENROUTER_API_KEY": "fake-test-only"},
         provider_names=("openrouter",),
     )
 

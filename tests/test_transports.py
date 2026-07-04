@@ -6,7 +6,7 @@ from nakazasen_ai_router.http import UrllibHTTPClient
 
 def test_create_router_from_env_enable_network_creates_real_transport_without_calling_it():
     router = create_router_from_env(
-        env={"OPENROUTER_API_KEY": "sk-test-only"},
+        env={"OPENROUTER_API_KEY": "fake-test-only"},
         provider_names=("openrouter",),
         enable_network=True,
     )
@@ -27,7 +27,7 @@ def test_real_transport_repr_does_not_include_authorization(caplog):
 
 def test_default_env_router_still_uses_no_network_placeholder():
     router = create_router_from_env(
-        env={"OPENROUTER_API_KEY": "sk-test-only"},
+        env={"OPENROUTER_API_KEY": "fake-test-only"},
         provider_names=("openrouter",),
     )
 
