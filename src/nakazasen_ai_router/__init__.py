@@ -1,5 +1,6 @@
-﻿"""Nakazasen AI Router public API."""
+"""Nakazasen AI Router public API."""
 
+from .config import create_router_from_env
 from .core import (
     AIRouter,
     AIRequest,
@@ -16,6 +17,7 @@ from .core import (
 )
 
 __all__ = [
+    "create_router_from_env",
     "AIRouter",
     "AIRequest",
     "AIResult",

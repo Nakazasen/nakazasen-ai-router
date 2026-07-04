@@ -1,4 +1,4 @@
-﻿# Nakazasen AI Router
+# Nakazasen AI Router
 
 Nakazasen AI Router là nền móng Python để điều phối nhiều nhà cung cấp AI trong tương lai.
 
@@ -44,3 +44,37 @@ print(result.text)
 - Không commit API key thật.
 - Log được làm sạch để tránh lộ chuỗi nhạy cảm trong metadata.
 - Provider thật sẽ được thêm sau, kèm test riêng.
+
+## Dùng trong repo khác
+
+Bạn có thể tạo router nhanh từ biến môi trường, không cần lưu API key trong code.
+
+Ví dụ PowerShell:
+
+```powershell
+$env:OPENROUTER_API_KEY = "sk-..."
+```
+
+Ví dụ Python:
+
+```python
+from nakazasen_ai_router import AIRequest, create_router_from_env
+
+router = create_router_from_env()
+result = router.route(AIRequest(prompt="Xin chào"))
+print(result.text)
+```
+
+Các biến môi trường đang hỗ trợ:
+
+| Provider | Biến API key | Ghi chú |
+|---|---|---|
+| OpenRouter | `OPENROUTER_API_KEY` | Cloud OpenAI-compatible |
+| Groq | `GROQ_API_KEY` | Cloud OpenAI-compatible |
+| DeepSeek | `DEEPSEEK_API_KEY` | Cloud OpenAI-compatible |
+| NVIDIA NIM | `NVIDIA_NIM_API_KEY` | Cloud OpenAI-compatible |
+| ChatAnyWhere | `CHATANYWHERE_API_KEY` | Cloud OpenAI-compatible |
+| Mistral | `MISTRAL_API_KEY` | Cloud OpenAI-compatible |
+| Local server | `LOCAL_OPENAI_COMPATIBLE_BASE_URL` | Localhost có thể không cần key |
+
+Trong test mặc định, dự án vẫn không gọi internet. App bên ngoài nên truyền `http_client` thật khi muốn gọi provider thật.
