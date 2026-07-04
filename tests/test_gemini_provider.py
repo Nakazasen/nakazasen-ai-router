@@ -143,3 +143,20 @@ def test_additional_live_pass_gemini_models_are_enabled():
     assert "gemini-3.1-flash-lite-preview" in models
     assert "gemma-4-31b-it" in models
     assert models[-1] == "gemma-4-31b-it"
+
+
+def test_live_smoke_writes_safe_health_cache(tmp_path: Path):
+    from scripts.live_smoke import run_provider, update_health_cache
+
+    key_file = tmp_path / "keys.txt"
+    cache_file = tmp_path / "health.json"
+    key_file.write_text("Gemini\nfake-gemini-key\n", encoding="utf-8")
+    row = run_provider("gemini", key_file, model="gemini-3.5-flash", http_client_factory=MockHTTPClient())
+    update_health_cache(cache_file, row)
+    content = cache_file.read_text(encoding="utf-8")
+
+    assert "gemini-3.5-flash" in content
+    assert "fake-gemini-key" not in content
+    assert "Reply with OK" not in content
+    assert "Authorization" not in content
+    assert "choices" not in content

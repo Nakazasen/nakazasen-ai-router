@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from nakazasen_ai_router import AIRequest, RouterError, create_router_from_env
 from nakazasen_ai_router.config import LIVE_FREE_FIRST_ORDER
 from nakazasen_ai_router.registry import PROVIDER_REGISTRY
+from nakazasen_ai_router.scoreboard import HealthScoreboard
 
 PROVIDER_ENV = {
     "gemini": "GEMINI_API_KEY",
@@ -43,6 +44,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model", default="", help="Force a single model id for this smoke test")
     parser.add_argument("--list-models", action="store_true", help="List configured provider models and exit")
     parser.add_argument("--test-all-models", action="store_true", help="Test every configured model for the selected provider")
+    parser.add_argument("--health-cache", default="", help="Optional JSON health cache path")
     return parser.parse_args()
 
 
@@ -164,6 +166,21 @@ def run_models(provider: str, key_file: Path, *, model: str = "", test_all_model
     return [run_provider(provider, key_file, model=item, http_client_factory=http_client_factory) for item in models]
 
 
+def update_health_cache(path: str | Path, row: dict[str, str]) -> None:
+    if not path:
+        return
+    scoreboard = HealthScoreboard.load_json(path)
+    provider = row.get("provider", "")
+    model = row.get("model", "")
+    if not provider or not model:
+        return
+    if row.get("status") == "PASS":
+        scoreboard.record_success(provider, model)
+    elif row.get("status") == "FAIL":
+        scoreboard.record_failure(provider, model, row.get("error_type") or row.get("reason") or "unknown_error")
+    scoreboard.save_json(path)
+
+
 def print_result(row: dict[str, str]) -> None:
     keys = ["provider", "model", "status", "reason", "error_type", "status_code", "text_length", "text_preview", "message"]
     print(" | ".join(f"{key}={row[key]}" for key in keys if row.get(key)))
@@ -188,6 +205,7 @@ def main() -> int:
     for provider in providers:
         for row in run_models(provider, Path(args.key_file), model=args.model, test_all_models=args.test_all_models):
             print_result(row)
+            update_health_cache(args.health_cache, row)
             any_pass = any_pass or row["status"] == "PASS"
             any_fail = any_fail or row["status"] == "FAIL"
             if args.stop_on_first_pass and row["status"] == "PASS":
