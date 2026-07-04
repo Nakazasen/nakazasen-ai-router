@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from nakazasen_ai_router import AIRequest, RouterError, create_router_from_env
 from nakazasen_ai_router.config import LIVE_FREE_FIRST_ORDER
+from nakazasen_ai_router.registry import PROVIDER_REGISTRY
 
 PROVIDER_ENV = {
     "gemini": "GEMINI_API_KEY",
@@ -37,8 +38,11 @@ PROVIDER_LABEL_ALIASES = {
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run safe live provider smoke tests.")
     parser.add_argument("--provider", required=True, choices=sorted(PROVIDER_ENV | {"all": ""}))
-    parser.add_argument("--key-file", required=True, help="Path to key file outside this repository")
+    parser.add_argument("--key-file", default="", help="Path to key file outside this repository")
     parser.add_argument("--stop-on-first-pass", action="store_true")
+    parser.add_argument("--model", default="", help="Force a single model id for this smoke test")
+    parser.add_argument("--list-models", action="store_true", help="List configured provider models and exit")
+    parser.add_argument("--test-all-models", action="store_true", help="Test every configured model for the selected provider")
     return parser.parse_args()
 
 
@@ -77,29 +81,36 @@ def read_key_from_file(path: Path, env_name: str, provider: str) -> str:
     return ""
 
 
-def run_provider(provider: str, key_file: Path) -> dict[str, str]:
+def provider_models(provider: str) -> tuple[str, ...]:
+    profile = PROVIDER_REGISTRY.get(provider)
+    return tuple(profile.default_models) if profile else ()
+
+
+def run_provider(provider: str, key_file: Path, *, model: str = "", http_client_factory=None) -> dict[str, str]:
     env_name = PROVIDER_ENV[provider]
-    key = read_key_from_file(key_file, env_name, provider)
+    key = read_key_from_file(key_file, env_name, provider) if str(key_file) else ""
     if not key:
-        return {"provider": provider, "status": "SKIP", "reason": "missing key for provider", "model": ""}
+        return {"provider": provider, "status": "SKIP", "reason": "missing key for provider", "model": model}
 
     old_value = os.environ.get(env_name)
     old_log_level = logging.getLogger("nakazasen_ai_router").level
     logging.getLogger("nakazasen_ai_router").setLevel(logging.CRITICAL)
     os.environ[env_name] = key
     try:
-        router = create_router_from_env(provider_names=(provider,), enable_network=True)
+        router = create_router_from_env(provider_names=(provider,), enable_network=True, http_client_factory=http_client_factory)
         if not router.providers:
-            return {"provider": provider, "status": "SKIP", "reason": "provider not created", "model": ""}
+            return {"provider": provider, "status": "SKIP", "reason": "provider not created", "model": model}
+        if model:
+            router.providers[0].provider.models = [model]
         result = router.route(AIRequest(prompt="Reply with OK."))
         attempts = list(result.metadata.get("attempts", []))
-        model = str(result.metadata.get("model") or (attempts[-1].get("model") if attempts else ""))
+        used_model = str(result.metadata.get("model") or (attempts[-1].get("model") if attempts else model))
         text = result.text.strip().replace("\r", " ").replace("\n", " ")
         return {
             "provider": provider,
+            "model": used_model,
             "status": "PASS",
             "reason": "",
-            "model": model,
             "text_length": str(len(result.text)),
             "text_preview": text[:80],
         }
@@ -109,15 +120,15 @@ def run_provider(provider: str, key_file: Path) -> dict[str, str]:
         status_code = ""
         safe_message = ""
         if provider_obj is not None:
-            safe_message = str(provider_obj.health.last_error or "")[:120]
+            safe_message = _sanitize_error_message(str(provider_obj.health.last_error or ""))
             status_code = _status_code_from_message(safe_message)
         return {
             "provider": provider,
+            "model": str(attempt.get("model", model)),
             "status": "FAIL",
             "reason": str(attempt.get("reason", "router_error")),
             "error_type": str(attempt.get("reason", "router_error")),
             "status_code": status_code,
-            "model": str(attempt.get("model", "")),
             "message": safe_message,
         }
     finally:
@@ -128,6 +139,17 @@ def run_provider(provider: str, key_file: Path) -> dict[str, str]:
             os.environ[env_name] = old_value
 
 
+def _sanitize_error_message(message: str) -> str:
+    compact = " ".join(str(message or "").replace("\r", " ").replace("\n", " ").split())
+    for marker in ("HTTPResponse(status_code=", "status_code="):
+        if marker in compact:
+            start = compact.find(marker) + len(marker)
+            code = compact[start:start + 3]
+            if code.isdigit():
+                return f"HTTP {code}"
+    return compact[:120]
+
+
 def _status_code_from_message(message: str) -> str:
     for code in ("400", "401", "403", "404", "429", "500", "502", "503", "504"):
         if code in message:
@@ -135,23 +157,41 @@ def _status_code_from_message(message: str) -> str:
     return ""
 
 
+def run_models(provider: str, key_file: Path, *, model: str = "", test_all_models: bool = False, http_client_factory=None) -> list[dict[str, str]]:
+    models = provider_models(provider) if test_all_models else (model,)
+    if not models:
+        models = ("",)
+    return [run_provider(provider, key_file, model=item, http_client_factory=http_client_factory) for item in models]
+
+
 def print_result(row: dict[str, str]) -> None:
-    keys = ["provider", "status", "reason", "error_type", "status_code", "model", "text_length", "text_preview", "message"]
+    keys = ["provider", "model", "status", "reason", "error_type", "status_code", "text_length", "text_preview", "message"]
     print(" | ".join(f"{key}={row[key]}" for key in keys if row.get(key)))
+
+
+def print_models(provider: str) -> None:
+    for model in provider_models(provider):
+        print(f"provider={provider} | model={model}")
 
 
 def main() -> int:
     args = parse_args()
+    if args.list_models:
+        providers = list(LIVE_FREE_FIRST_ORDER) if args.provider == "all" else [args.provider]
+        for provider in providers:
+            print_models(provider)
+        return 0
+
     providers = list(LIVE_FREE_FIRST_ORDER) if args.provider == "all" else [args.provider]
     any_fail = False
     any_pass = False
     for provider in providers:
-        row = run_provider(provider, Path(args.key_file))
-        print_result(row)
-        any_pass = any_pass or row["status"] == "PASS"
-        any_fail = any_fail or row["status"] == "FAIL"
-        if args.stop_on_first_pass and row["status"] == "PASS":
-            break
+        for row in run_models(provider, Path(args.key_file), model=args.model, test_all_models=args.test_all_models):
+            print_result(row)
+            any_pass = any_pass or row["status"] == "PASS"
+            any_fail = any_fail or row["status"] == "FAIL"
+            if args.stop_on_first_pass and row["status"] == "PASS":
+                return 0
     return 0 if any_pass or not any_fail else 2
 
 

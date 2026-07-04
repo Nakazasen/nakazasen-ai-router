@@ -95,3 +95,47 @@ def test_live_smoke_argparse_accepts_gemini(monkeypatch):
     args = parse_args()
 
     assert args.provider == "gemini"
+
+GEMINI_MODELS = (
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-3-flash-preview",
+    "gemma-4-31b-it",
+    "gemma-4-26b-a4b-it",
+    "gemini-robotics-er-1.5-preview",
+    "gemini-robotics-er-1.6-preview",
+    "gemma-3-1b-it",
+    "gemma-3-4b-it",
+    "gemma-3-12b-it",
+    "gemma-3-27b-it",
+    "gemma-3n-e4b-it",
+    "gemma-3n-e2b-it",
+)
+
+
+def test_gemini_model_catalog_contains_all_configured_models():
+    assert PROVIDER_REGISTRY["gemini"].default_models == GEMINI_MODELS
+
+
+def test_live_smoke_model_override_uses_requested_model(tmp_path: Path):
+    from scripts.live_smoke import run_provider
+
+    key_file = tmp_path / "keys.txt"
+    key_file.write_text("Gemini`nfake-gemini-key`n", encoding="utf-8")
+    row = run_provider("gemini", key_file, model="gemma-3-1b-it", http_client_factory=MockHTTPClient())
+
+    assert row["status"] == "PASS"
+    assert row["model"] == "gemma-3-1b-it"
+
+
+def test_live_smoke_test_all_models_with_mock(tmp_path: Path):
+    from scripts.live_smoke import run_models
+
+    key_file = tmp_path / "keys.txt"
+    key_file.write_text("Gemini\nfake-gemini-key\n", encoding="utf-8")
+    rows = run_models("gemini", key_file, test_all_models=True, http_client_factory=MockHTTPClient())
+
+    assert [row["model"] for row in rows] == list(GEMINI_MODELS)
+    assert {row["status"] for row in rows} == {"PASS"}

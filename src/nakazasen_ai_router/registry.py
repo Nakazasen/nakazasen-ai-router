@@ -21,7 +21,7 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         name="gemini",
         base_url="https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
         api_key_env_var="GEMINI_API_KEY",
-        default_models=("gemini-3.5-flash", "gemini-flash-latest"),
+        default_models=("gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3-flash-preview", "gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-robotics-er-1.5-preview", "gemini-robotics-er-1.6-preview", "gemma-3-1b-it", "gemma-3-4b-it", "gemma-3-12b-it", "gemma-3-27b-it", "gemma-3n-e4b-it", "gemma-3n-e2b-it"),
         is_cloud=True,
         note="Gemini API qua endpoint OpenAI-compatible.",
     ),
@@ -31,7 +31,7 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         api_key_env_var="OPENROUTER_API_KEY",
         default_models=("meta-llama/llama-3.3-70b-instruct:free",),
         is_cloud=True,
-        note="OpenRouter gom nhi逶ｻ縲・model OpenAI-compatible qua m逶ｻ蜀ｲ endpoint.",
+        note="OpenRouter gom nhi騾ｶ・ｻ邵ｲ繝ｻmodel OpenAI-compatible qua m騾ｶ・ｻ陷・ｲ endpoint.",
     ),
     "groq": ProviderProfile(
         name="groq",
@@ -39,7 +39,7 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         api_key_env_var="GROQ_API_KEY",
         default_models=("llama-3.1-8b-instant",),
         is_cloud=True,
-        note="Groq ph・・ｽｹ h逶ｻ・｣p t・・ｽ｡c v逶ｻ・･ c陂ｯ・ｧn ph陂ｯ・｣n h逶ｻ螯ｬ nhanh.",
+        note="Groq ph繝ｻ繝ｻ・ｽ・ｹ h騾ｶ・ｻ繝ｻ・｣p t繝ｻ繝ｻ・ｽ・｡c v騾ｶ・ｻ繝ｻ・･ c髯ゑｽｯ繝ｻ・ｧn ph髯ゑｽｯ繝ｻ・｣n h騾ｶ・ｻ陞ｯ・ｬ nhanh.",
     ),
     "deepseek": ProviderProfile(
         name="deepseek",
@@ -55,7 +55,7 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         api_key_env_var="NVIDIA_NIM_API_KEY",
         default_models=("meta/llama-3.1-8b-instruct",),
         is_cloud=True,
-        note="NVIDIA NIM cung c陂ｯ・･p nhi逶ｻ縲・model inference qua API t・・ｽｰ・・ｽ｡ng th・・ｽｭch OpenAI.",
+        note="NVIDIA NIM cung c髯ゑｽｯ繝ｻ・･p nhi騾ｶ・ｻ邵ｲ繝ｻmodel inference qua API t繝ｻ繝ｻ・ｽ・ｰ繝ｻ繝ｻ・ｽ・｡ng th繝ｻ繝ｻ・ｽ・ｭch OpenAI.",
     ),
     "chatanywhere": ProviderProfile(
         name="chatanywhere",
@@ -63,7 +63,7 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         api_key_env_var="CHATANYWHERE_API_KEY",
         default_models=("gpt-4o-mini",),
         is_cloud=True,
-        note="ChatAnyWhere l・・｣ｰ endpoint OpenAI-compatible b・・ｽｪn th逶ｻ・ｩ ba.",
+        note="ChatAnyWhere l繝ｻ繝ｻ・｣・ｰ endpoint OpenAI-compatible b繝ｻ繝ｻ・ｽ・ｪn th騾ｶ・ｻ繝ｻ・ｩ ba.",
     ),
     "mistral": ProviderProfile(
         name="mistral",
@@ -71,7 +71,7 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         api_key_env_var="MISTRAL_API_KEY",
         default_models=("mistral-small-latest",),
         is_cloud=True,
-        note="Mistral API d・・ｽｹng ・・氈・ｰ逶ｻ・｣c qua adapter OpenAI-compatible.",
+        note="Mistral API d繝ｻ繝ｻ・ｽ・ｹng 繝ｻ繝ｻ豌医・・ｰ騾ｶ・ｻ繝ｻ・｣c qua adapter OpenAI-compatible.",
     ),
     "local_openai_compatible": ProviderProfile(
         name="local_openai_compatible",
@@ -80,6 +80,6 @@ PROVIDER_REGISTRY: dict[str, ProviderProfile] = {
         base_url_env_var="LOCAL_OPENAI_COMPATIBLE_BASE_URL",
         default_models=("local-model",),
         is_cloud=False,
-        note="Server local t・・ｽｰ・・ｽ｡ng th・・ｽｭch OpenAI, c・・ｽｳ th逶ｻ繝ｻd・・ｽｹng kh・・ｽｴng c陂ｯ・ｧn API key.",
+        note="Server local t繝ｻ繝ｻ・ｽ・ｰ繝ｻ繝ｻ・ｽ・｡ng th繝ｻ繝ｻ・ｽ・ｭch OpenAI, c繝ｻ繝ｻ・ｽ・ｳ th騾ｶ・ｻ郢晢ｽｻd繝ｻ繝ｻ・ｽ・ｹng kh繝ｻ繝ｻ・ｽ・ｴng c髯ゑｽｯ繝ｻ・ｧn API key.",
     ),
 }
