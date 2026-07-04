@@ -1,5 +1,10 @@
 # Changelog
 
+## Gate 14.6 - Vietnamese documentation and docs audit
+
+- Added Vietnamese documentation pages for README, quickstart, security/privacy, roadmap, and operation rules.
+- Added documentation quality audit to guard against mojibake, placeholders, raw key examples, and missing Vietnamese docs links.
+
 ## Gate 14.5 - Mojibake cleanup
 
 - Rewrote public documentation in clean UTF-8.

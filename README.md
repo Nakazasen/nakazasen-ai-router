@@ -1,5 +1,6 @@
 # Nakazasen AI Router
 
+Vietnamese documentation: [README.vi.md](README.vi.md)
 Nakazasen AI Router is a small, privacy-aware, free-first AI provider router for Python applications.
 It is designed to route requests across local and cloud providers while keeping tests mock-first and network-free by default.
 
@@ -74,8 +75,8 @@ Network access is opt-in. The default test path remains mock-first.
 Keep key files outside the repository.
 
 ```powershell
-py scripts/live_smoke.py --provider gemini --key-file "D:\path\to\API Key.txt" --model gemini-3.5-flash
-py scripts/live_smoke.py --provider gemini --key-file "D:\path\to\API Key.txt" --test-all-models
+py scripts/live_smoke.py --provider gemini --key-file "D:\path\to\provider_keys.txt" --model gemini-3.5-flash
+py scripts/live_smoke.py --provider gemini --key-file "D:\path\to\provider_keys.txt" --test-all-models
 ```
 
 Live output is sanitized and should only show provider, model, status, short error metadata, and short text previews.
@@ -85,8 +86,8 @@ Live output is sanitized and should only show provider, model, status, short err
 Discovery is opt-in and does not enable new models automatically.
 
 ```powershell
-py scripts/discover_models.py --provider gemini --key-file "D:\path\to\API Key.txt"
-py scripts/discover_models.py --provider gemini --key-file "D:\path\to\API Key.txt" --validate-live --only-new
+py scripts/discover_models.py --provider gemini --key-file "D:\path\to\provider_keys.txt"
+py scripts/discover_models.py --provider gemini --key-file "D:\path\to\provider_keys.txt" --validate-live --only-new
 ```
 
 A discovered model must live PASS and be manually reviewed before it is added to the runtime catalog.
@@ -97,7 +98,7 @@ Health cache is optional and stores only safe metadata: success/failure counts, 
 It must not contain prompts, API keys, Authorization headers, raw provider responses, or evidence.
 
 ```powershell
-py scripts/live_smoke.py --provider gemini --key-file "D:\path\to\API Key.txt" --model gemini-3.5-flash --health-cache local_cases/router_health.json
+py scripts/live_smoke.py --provider gemini --key-file "D:\path\to\provider_keys.txt" --model gemini-3.5-flash --health-cache local_cases/router_health.json
 py scripts/health_scoreboard.py --health-cache local_cases/router_health.json --provider gemini --rank-configured
 ```
 

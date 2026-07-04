@@ -43,7 +43,7 @@ py -m pytest -q
 
 ## Chạy kiểm tra thực tế bằng khóa dịch vụ bên ngoài
 
-Để kiểm thử kết nối thật tới API của nhà cung cấp, bạn cần chuẩn bị một tệp cấu hình chứa mã khóa thật, đặt **bên ngoài thư mục của dự án này** (ví dụ: `D:\Sandbox\AIOS_habbit\API Key.txt`) để đảm bảo an toàn tuyệt đối.
+Để kiểm thử kết nối thật tới API của nhà cung cấp, bạn cần chuẩn bị một tệp cấu hình chứa mã khóa thật, đặt **bên ngoài thư mục của dự án này** (ví dụ: `D:\duong_dan_ngoai\provider_keys.txt`) để đảm bảo an toàn tuyệt đối.
 
 Cấu trúc dòng trong tệp khóa dịch vụ:
 ```text
@@ -55,10 +55,10 @@ Chạy lệnh kiểm tra thực tế:
 
 ```bash
 # Chạy với mô hình mặc định hàng đầu
-py scripts/live_smoke.py --provider gemini --key-file "D:\Sandbox\AIOS_habbit\API Key.txt"
+py scripts/live_smoke.py --provider gemini --key-file "D:\duong_dan_ngoai\provider_keys.txt"
 
 # Chạy kiểm tra lần lượt tất cả mô hình trong danh mục cấu hình
-py scripts/live_smoke.py --provider gemini --key-file "D:\Sandbox\AIOS_habbit\API Key.txt" --test-all-models
+py scripts/live_smoke.py --provider gemini --key-file "D:\duong_dan_ngoai\provider_keys.txt" --test-all-models
 ```
 
 ## Không commit mã khóa dịch vụ (API Key)

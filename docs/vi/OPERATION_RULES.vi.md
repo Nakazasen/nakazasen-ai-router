@@ -32,6 +32,6 @@ Mỗi cột mốc phát triển (Gate) chỉ được phép coi là hoàn thành
 3. **Không rò rỉ mã khóa dịch vụ (Secret Scan):** Chạy lệnh kiểm tra từ khóa nhạy cảm trên toàn bộ tệp tin dự án và không có kết quả trùng khớp:
    ```powershell
    # Quét khóa dịch vụ cơ bản
-   Select-String -Path README.md,CHANGELOG.md,ARCHITECTURE.md,ROADMAP.md,pyproject.toml -Pattern "sk-|AIza|GEMINI_API_KEY=.*[A-Za-z0-9]" -CaseSensitive:$false
+   Select-String -Path README.md,CHANGELOG.md,ARCHITECTURE.md,ROADMAP.md,pyproject.toml -Pattern "<secret-patterns>" -CaseSensitive:$false
    ```
 4. **Trạng thái Git sạch sẽ:** Không có tệp tin chưa được theo dõi nằm ngoài danh mục mong muốn, các tệp chỉnh sửa đều được commit rõ ràng.

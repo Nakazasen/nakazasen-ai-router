@@ -2,7 +2,7 @@
 
 ## Current status
 
-Nakazasen AI Router is a small Python router with:
+Nakazasen AI Router has completed Gate 14.6:
 
 - Core routing and fallback.
 - OpenAI-compatible provider adapter.
@@ -11,6 +11,7 @@ Nakazasen AI Router is a small Python router with:
 - Gemini support, curated runtime catalog, and discovery script.
 - Health scoreboard and model aliases.
 - AIOS privacy policy adapter design.
+- Clean English public docs plus Vietnamese docs and docs quality audit.
 
 ## Next gates
 
