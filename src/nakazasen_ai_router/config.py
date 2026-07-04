@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from .core import AIRouter, RouterPolicy
+from .http import UrllibHTTPClient
 from .providers import OpenAICompatibleProvider
 from .registry import PROVIDER_REGISTRY, ProviderProfile
 
@@ -17,12 +18,14 @@ def create_router_from_env(
     provider_names: list[str] | tuple[str, ...] | None = None,
     http_client_factory: Any | None = None,
     policy: RouterPolicy | None = None,
+    enable_network: bool = False,
 ) -> AIRouter:
     """Create an AIRouter from environment variables only.
 
     Cloud providers are skipped when their API key environment variable is
     missing. The local OpenAI-compatible provider is allowed without a key when
-    its base URL points to localhost/127.0.0.1.
+    its base URL points to localhost/127.0.0.1. Network I/O is disabled unless
+    the caller supplies `http_client_factory` or sets `enable_network=True`.
     """
 
     source_env = env or os.environ
@@ -32,7 +35,12 @@ def create_router_from_env(
         profile = PROVIDER_REGISTRY.get(name)
         if profile is None:
             continue
-        provider = build_provider_from_profile(profile, source_env, http_client_factory=http_client_factory)
+        provider = build_provider_from_profile(
+            profile,
+            source_env,
+            http_client_factory=http_client_factory,
+            enable_network=enable_network,
+        )
         if provider is not None:
             providers.append(provider)
     return AIRouter(providers, policy=policy)
@@ -43,6 +51,7 @@ def build_provider_from_profile(
     env: Mapping[str, str],
     *,
     http_client_factory: Any | None = None,
+    enable_network: bool = False,
 ) -> OpenAICompatibleProvider | None:
     api_key = str(env.get(profile.api_key_env_var, "") or "").strip() if profile.api_key_env_var else ""
     base_url = str(env.get(profile.base_url_env_var, "") or "").strip() if profile.base_url_env_var else ""
@@ -55,7 +64,7 @@ def build_provider_from_profile(
 
     http_client = http_client_factory(profile) if callable(http_client_factory) else http_client_factory
     if http_client is None:
-        http_client = _NoNetworkHTTPClient()
+        http_client = UrllibHTTPClient() if enable_network else _NoNetworkHTTPClient()
 
     return OpenAICompatibleProvider(
         name=profile.name,
@@ -77,3 +86,6 @@ class _NoNetworkHTTPClient:
 
     def post(self, *args: Any, **kwargs: Any) -> Any:
         raise RuntimeError("No http_client configured for OpenAI-compatible provider")
+
+    def __repr__(self) -> str:
+        return "NoNetworkHTTPClient()"
