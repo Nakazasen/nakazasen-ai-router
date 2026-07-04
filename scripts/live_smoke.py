@@ -14,9 +14,8 @@ sys.path.insert(0, str(ROOT / "src"))
 from nakazasen_ai_router import AIRequest, RouterError, create_router_from_env
 from nakazasen_ai_router.config import LIVE_FREE_FIRST_ORDER
 
-logging.getLogger("nakazasen_ai_router").setLevel(logging.CRITICAL)
-
 PROVIDER_ENV = {
+    "gemini": "GEMINI_API_KEY",
     "openrouter": "OPENROUTER_API_KEY",
     "groq": "GROQ_API_KEY",
     "deepseek": "DEEPSEEK_API_KEY",
@@ -26,6 +25,7 @@ PROVIDER_ENV = {
 }
 
 PROVIDER_LABEL_ALIASES = {
+    "gemini": ("gemini", "google gemini", "gemini api key", "google ai", "google ai studio"),
     "openrouter": ("open router",),
     "groq": ("groq api key",),
     "nvidia_nim": ("nvidia nim",),
@@ -84,6 +84,8 @@ def run_provider(provider: str, key_file: Path) -> dict[str, str]:
         return {"provider": provider, "status": "SKIP", "reason": "missing key for provider", "model": ""}
 
     old_value = os.environ.get(env_name)
+    old_log_level = logging.getLogger("nakazasen_ai_router").level
+    logging.getLogger("nakazasen_ai_router").setLevel(logging.CRITICAL)
     os.environ[env_name] = key
     try:
         router = create_router_from_env(provider_names=(provider,), enable_network=True)
@@ -119,6 +121,7 @@ def run_provider(provider: str, key_file: Path) -> dict[str, str]:
             "message": safe_message,
         }
     finally:
+        logging.getLogger("nakazasen_ai_router").setLevel(old_log_level)
         if old_value is None:
             os.environ.pop(env_name, None)
         else:

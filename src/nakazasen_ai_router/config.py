@@ -11,7 +11,7 @@ from .http import UrllibHTTPClient
 from .providers import OpenAICompatibleProvider
 from .registry import PROVIDER_REGISTRY, ProviderProfile
 
-LIVE_FREE_FIRST_ORDER = ("deepseek", "nvidia_nim", "chatanywhere", "mistral", "openrouter", "groq")
+LIVE_FREE_FIRST_ORDER = ("gemini", "deepseek", "nvidia_nim", "chatanywhere", "mistral", "openrouter", "groq")
 
 
 def create_router_from_env(
