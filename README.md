@@ -1,5 +1,14 @@
 # Nakazasen AI Router
 
+## Stable install
+
+```powershell
+pip install git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.1
+```
+
+Release notes: [0.2.1.md](docs/releases/0.2.1.md)
+
+
 Vietnamese documentation: [README.vi.md](README.vi.md)
 
 Nakazasen AI Router is a general-purpose AI capacity layer for Python applications. It routes AI requests across local and cloud providers, manages provider/model/key health, and gives other repositories durable access to AI capacity without tying the core to any single domain.

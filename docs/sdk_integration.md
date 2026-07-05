@@ -1,4 +1,4 @@
-﻿# SDK-first integration
+# SDK-first integration
 
 Use `nakazasen-ai-router` as an embedded Python SDK when you do not want a central Router Server.
 
@@ -7,7 +7,7 @@ Use `nakazasen-ai-router` as an embedded Python SDK when you do not want a centr
 From a local wheel:
 
 ```powershell
-py -m pip install dist\nakazasen_ai_router-0.2.0-py3-none-any.whl
+py -m pip install dist\nakazasen_ai_router-0.2.1-py3-none-any.whl
 ```
 
 From GitHub:

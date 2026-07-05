@@ -1,4 +1,4 @@
-﻿# Live provider conformance
+# Live provider conformance
 
 Live conformance kiểm chứng provider thật nhưng không biến live check thành test mặc định hoặc CI bắt buộc.
 
@@ -13,25 +13,25 @@ Live conformance kiểm chứng provider thật nhưng không biến live check 
 ## Chạy một provider
 
 ```powershell
-py scripts/live_conformance.py --provider gemini --key-file "D:\Sandbox\AIOS_habbit\API Key.txt"
+py scripts/live_conformance.py --provider gemini --key-file "path\to\provider_keys.txt"
 ```
 
 Ghi report tùy chọn:
 
 ```powershell
-py scripts/live_conformance.py --provider gemini --key-file "D:\Sandbox\AIOS_habbit\API Key.txt" --json-out local_cases/conformance_gemini.json
+py scripts/live_conformance.py --provider gemini --key-file "path\to\provider_keys.txt" --json-out local_cases/conformance_gemini.json
 ```
 
 ## Check tùy chọn
 
 ```powershell
-py scripts/live_conformance.py --provider gemini --key-file "D:\Sandbox\AIOS_habbit\API Key.txt" --include-async --include-stream
+py scripts/live_conformance.py --provider gemini --key-file "path\to\provider_keys.txt" --include-async --include-stream
 ```
 
 ## Tất cả provider có key
 
 ```powershell
-py scripts/live_conformance.py --all-configured --key-file "D:\Sandbox\AIOS_habbit\API Key.txt"
+py scripts/live_conformance.py --all-configured --key-file "path\to\provider_keys.txt"
 ```
 
 Lệnh thành công nếu ít nhất một provider configured pass. Provider thiếu key sẽ có status `missing key`.

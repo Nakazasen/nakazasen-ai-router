@@ -1,5 +1,14 @@
 # Nakazasen AI Router
 
+## Stable install
+
+```powershell
+pip install git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.1
+```
+
+Release notes: [0.2.1.md](docs/releases/0.2.1.md)
+
+
 Nakazasen AI Router là một lớp cung cấp năng lực AI đa nhiệm cho ứng dụng Python. Nó điều phối request AI qua nhiều provider local/cloud, quản lý sức khỏe provider/model/key và giúp repo khác dùng AI bền vững mà không buộc core vào một domain cụ thể.
 Thư viện được thiết kế theo triết lý giả lập trước (mock-first) để các hoạt động kiểm thử (test) mặc định không cần kết nối mạng và không yêu cầu mã khóa dịch vụ (API key) thật.
 

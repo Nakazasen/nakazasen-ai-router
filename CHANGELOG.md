@@ -4,7 +4,7 @@ All notable changes to `nakazasen-ai-router` will be documented in this file.
 
 This project follows pre-1.0 semantic versioning: public root exports are documented, but breaking changes may still happen before 1.0 and should be called out here.
 
-## 0.2.1 - Unreleased
+## 0.2.1 - 2026-07-05
 
 ### Added
 

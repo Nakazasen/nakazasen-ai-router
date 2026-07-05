@@ -1,4 +1,4 @@
-﻿# Tích hợp SDK-first
+# Tích hợp SDK-first
 
 Dùng `nakazasen-ai-router` như Python SDK embedded khi bạn chưa muốn Router Server trung tâm.
 
@@ -7,7 +7,7 @@ Dùng `nakazasen-ai-router` như Python SDK embedded khi bạn chưa muốn Rout
 Từ local wheel:
 
 ```powershell
-py -m pip install dist\nakazasen_ai_router-0.2.0-py3-none-any.whl
+py -m pip install dist\nakazasen_ai_router-0.2.1-py3-none-any.whl
 ```
 
 Từ GitHub:
