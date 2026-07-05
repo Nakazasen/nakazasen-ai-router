@@ -17,6 +17,7 @@ def test_multi_domain_examples_run_offline(tmp_path):
         "json_extraction_demo.py",
         "content_generation_demo.py",
         "segmented_batch_demo.py",
+        "job_queue_worker_demo.py",
     ]
     for example in examples:
         module = load_example(example)

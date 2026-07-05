@@ -254,6 +254,10 @@ py scripts/discover_models.py --provider gemini --key-file "D:\path\to\provider_
 
 A discovered model must pass live validation and be manually reviewed before being added to the runtime catalog.
 
+## Persistent job queue
+
+Use [docs/job_queue.md](docs/job_queue.md) for the optional SQLite queue adapter that supports enqueue, claim, lease, retry, success, and failure without storing raw payloads.
+
 ## Segmentation primitives
 
 Use [docs/segmentation.md](docs/segmentation.md) for domain-neutral chunking/merge helpers before `route_outcome()`.

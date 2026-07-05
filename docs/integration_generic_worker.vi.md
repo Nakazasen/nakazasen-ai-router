@@ -1,4 +1,4 @@
-﻿# Công thức tích hợp worker generic
+# Công thức tích hợp worker generic
 
 Dùng recipe này khi một repository khác cần một AI capacity pool bền vững mà không gắn với domain cụ thể.
 
@@ -82,6 +82,8 @@ async def process_job_async(job):
         )
     )
 ```
+
+Với worker bền vững, xem [job_queue.vi.md](job_queue.vi.md) để dùng pattern `SQLiteJobStore` enqueue/claim/retry.
 
 ## Snapshot vận hành
 

@@ -247,6 +247,10 @@ router = create_router_from_env(
 
 SQLite store chỉ lưu current state của `provider + model + key_id`. Nó không lưu attempt log để tránh phình DB và giảm rủi ro lộ metadata.
 
+## Job queue bền vững
+
+Xem [docs/job_queue.vi.md](docs/job_queue.vi.md) để dùng SQLite queue adapter tùy chọn cho enqueue, claim, lease, retry, success/fail mà không lưu raw payload.
+
 ## Primitive segmentation
 
 Xem [docs/segmentation.vi.md](docs/segmentation.vi.md) để dùng helper chia/gộp chunk trung lập domain trước `route_outcome()`.

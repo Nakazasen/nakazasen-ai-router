@@ -1,4 +1,4 @@
-﻿# Generic worker integration recipe
+# Generic worker integration recipe
 
 Use this recipe when another repository needs a durable AI capacity pool without tying the integration to a specific domain.
 
@@ -82,6 +82,8 @@ async def process_job_async(job):
         )
     )
 ```
+
+For persistent workers, see [job_queue.md](job_queue.md) for `SQLiteJobStore` enqueue/claim/retry patterns.
 
 ## Operational snapshot
 

@@ -15,6 +15,7 @@ This project follows pre-1.0 semantic versioning: public root exports are docume
 - Positioning audit script and tests to prevent translation-only narrative drift.
 - Opt-in live provider conformance script and docs with sanitized leak checks.
 - Generic segmentation/aggregation primitives, docs, tests, and offline segmented batch demo.
+- Persistent generic SQLite job queue adapter, docs, tests, and offline worker demo.
 
 ### Changed
 

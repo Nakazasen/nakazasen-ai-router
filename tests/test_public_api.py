@@ -24,6 +24,11 @@ EXPECTED_PUBLIC_NAMES = {
     "create_router_from_env",
     "create_live_free_first_router_from_env",
     "ModelCapability",
+    "JobStatus",
+    "JobRecord",
+    "JobStore",
+    "SQLiteJobStore",
+    "sanitize_job_metadata",
     "ChunkingPolicy",
     "WorkChunk",
     "estimate_tokens",
@@ -55,8 +60,10 @@ def test_public_api_capability_helper_smoke():
     capability = nar.capability_for("gemini", "gemini-2.5-flash")
     score = nar.score_candidate_for_task(capability, "translation_longform")
     chunks = nar.segment_text("hello world", nar.ChunkingPolicy(max_estimated_tokens=100))
+    safe_metadata = nar.sanitize_job_metadata({"prompt": "secret", "job_id": "j1"})
 
     assert isinstance(capability, nar.ModelCapability)
     assert score > 0
     assert isinstance(chunks[0], nar.WorkChunk)
+    assert safe_metadata == {"job_id": "j1"}
     assert nar.merge_chunk_texts(["a", "b"]) == "a\nb"
