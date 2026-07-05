@@ -1,10 +1,12 @@
 import logging
 from email.utils import format_datetime
 from datetime import datetime, timedelta, timezone
+import asyncio
+import time
 
 import pytest
 
-from nakazasen_ai_router import AIRouter, AIRequest, ProviderBase, ProviderCandidate, ProviderError, RouterError, RouterPolicy
+from nakazasen_ai_router import AIRequest, AIResult, AIStreamChunk, AIRouter, MemoryStateStore, ProviderBase, ProviderCandidate, ProviderError, RouterError, RouterPolicy
 from nakazasen_ai_router.core import classify_error, extract_retry_after_seconds, mask_key_id
 from nakazasen_ai_router.fake_providers import (
     provider_fail_auth,
@@ -124,6 +126,9 @@ def test_classify_quota_by_status_code():
 
 def test_classify_quota_by_body_hint():
     assert classify_error("", response_body={"error": "quota exceeded rate limit"}) == "quota_rate_limit"
+    assert classify_error("", response_body={"error": "daily quota exceeded"}) == "quota_exhausted_daily"
+    assert classify_error("", response_body={"error": "insufficient_quota"}) == "insufficient_quota"
+    assert classify_error("", response_body={"error": "billing hard limit reached"}) == "billing_limit"
 
 
 def test_classify_timeout_transport_model_token_and_5xx():
@@ -225,3 +230,184 @@ def test_health_success_failure_counts_update_correctly():
     assert provider_a.health.last_error_type == "quota_rate_limit"
     assert provider_b.health.success_count == 1
     assert provider_b.health.consecutive_failures == 0
+
+
+def test_export_state_returns_safe_dashboard_summary_without_raw_prompt_or_key():
+    raw_key = "fake-secret-dashboard-key"
+    store = MemoryStateStore()
+    store.record_failure(
+        "gemini",
+        "gemini-2.5-flash",
+        mask_key_id(raw_key),
+        error_type="quota_rate_limit",
+        error_message="sensitive prompt must not appear",
+        cooldown_until=time.time() + 30,
+    )
+    store.record_success("openrouter", "free-model", "openrouter_1", latency_ms=123)
+    router = AIRouter([], state_store=store)
+
+    exported = router.export_state()
+    exported_text = str(exported)
+
+    assert exported["summary"]["total"] == 2
+    assert exported["summary"]["healthy"] == 1
+    assert exported["summary"]["cooldown"] == 1
+    assert exported["summary"]["next_retry_after_seconds"] is not None
+    assert raw_key not in exported_text
+    assert "sensitive prompt must not appear" not in exported_text
+    assert "****-key" in exported_text
+
+
+def test_async_route_and_route_outcome_succeed_with_sync_provider_fallback():
+    router = AIRouter([provider_success("async_backup")])
+
+    result = asyncio.run(router.aroute(AIRequest(prompt="hello")))
+    outcome = asyncio.run(router.aroute_outcome(AIRequest(prompt="hello")))
+
+    assert result.provider_name == "async_backup"
+    assert outcome.status == "success"
+    assert outcome.result is not None
+    assert outcome.result.provider_name == "async_backup"
+
+
+def test_task_aware_policy_prefers_longform_translation_capability():
+    openrouter = CandidateProvider(
+        "openrouter",
+        [AIResult("cheap", "openrouter")],
+        candidates=[ProviderCandidate(provider=None, model="meta-llama/llama-3.3-70b-instruct:free")],
+    )
+    gemini = CandidateProvider(
+        "gemini",
+        [AIResult("long", "gemini")],
+        candidates=[ProviderCandidate(provider=None, model="gemini-2.5-flash")],
+    )
+    router = AIRouter([openrouter, gemini], policy=RouterPolicy(task_type="translation_longform"))
+
+    result = router.route(AIRequest(prompt="chapter"))
+
+    assert result.provider_name == "gemini"
+    assert gemini.calls == 1
+    assert openrouter.calls == 0
+
+
+def test_request_task_type_overrides_policy_task_type():
+    openrouter = CandidateProvider(
+        "openrouter",
+        [AIResult("cheap", "openrouter")],
+        candidates=[ProviderCandidate(provider=None, model="meta-llama/llama-3.3-70b-instruct:free")],
+    )
+    gemini = CandidateProvider(
+        "gemini",
+        [AIResult("long", "gemini")],
+        candidates=[ProviderCandidate(provider=None, model="gemini-2.5-flash")],
+    )
+    router = AIRouter([gemini, openrouter], policy=RouterPolicy(task_type="translation_longform"))
+
+    result = router.route(AIRequest(prompt="short", metadata={"task_type": "cheap_generation"}))
+
+    assert result.provider_name == "openrouter"
+    assert openrouter.calls == 1
+    assert gemini.calls == 0
+
+
+
+def test_budget_guard_blocks_provider_call_and_route_outcome_reports_budget_exceeded():
+    provider = provider_success("primary")
+    router = AIRouter([provider], policy=RouterPolicy(max_estimated_input_tokens=100))
+
+    outcome = router.route_outcome(AIRequest(prompt="large", metadata={"estimated_input_tokens": 101}))
+
+    assert outcome.status == "failed"
+    assert outcome.error_type == "budget_exceeded"
+    assert provider.calls == 0
+    assert outcome.attempts[0].reason == "budget_exceeded"
+
+
+def test_budget_guard_allows_under_budget_request():
+    provider = provider_success("primary")
+    router = AIRouter([provider], policy=RouterPolicy(max_estimated_output_tokens=100))
+
+    result = router.route(AIRequest(prompt="small", metadata={"estimated_output_tokens": 99}))
+
+    assert result.provider_name == "primary"
+    assert provider.calls == 1
+
+
+def test_backoff_grows_with_failure_streak_and_respects_retry_after():
+    router = AIRouter([], policy=RouterPolicy(backoff_base_seconds=10, backoff_max_seconds=60, backoff_jitter_ratio=0.2))
+
+    first = router._cooldown_seconds_for_error("transport_error", None, failure_streak=1)
+    third = router._cooldown_seconds_for_error("transport_error", None, failure_streak=3)
+    retry_after = router._cooldown_seconds_for_error("transport_error", 50, failure_streak=1)
+
+    assert first == 11
+    assert third == 44
+    assert retry_after >= 50
+
+
+def test_quota_backoff_uses_retry_after_as_minimum():
+    router = AIRouter([], policy=RouterPolicy(quota_cooldown_seconds=20, backoff_max_seconds=120))
+
+    cooldown = router._cooldown_seconds_for_error("quota_rate_limit", 90, failure_streak=1)
+
+    assert cooldown >= 90
+
+
+class StreamingProvider(CandidateProvider):
+    def stream_generate(self, request):
+        yield AIStreamChunk(text="part-1", provider_name=self.name, done=False)
+        yield AIStreamChunk(text="part-2", provider_name=self.name, done=True)
+
+    async def astream_generate(self, request):
+        yield AIStreamChunk(text="apart-1", provider_name=self.name, done=False)
+        yield AIStreamChunk(text="apart-2", provider_name=self.name, done=True)
+
+
+def test_stream_falls_back_to_single_route_chunk_and_sanitizes_metadata():
+    provider = CandidateProvider("primary", [AIResult("hello", "primary", metadata={"api_key": "secret", "safe": "ok"})])
+    router = AIRouter([provider])
+
+    chunks = list(router.stream(AIRequest(prompt="hello")))
+
+    assert len(chunks) == 1
+    assert chunks[0].text == "hello"
+    assert chunks[0].done is True
+    assert chunks[0].metadata["api_key"] == "[REDACTED]"
+    assert chunks[0].metadata["safe"] == "ok"
+
+
+def test_stream_uses_provider_stream_generate_when_available():
+    provider = StreamingProvider("streamer", [])
+    router = AIRouter([provider])
+
+    chunks = list(router.stream(AIRequest(prompt="hello")))
+
+    assert [chunk.text for chunk in chunks] == ["part-1", "part-2"]
+    assert chunks[-1].done is True
+
+
+def test_astream_falls_back_to_single_async_route_chunk():
+    provider = CandidateProvider("primary", [AIResult("hello", "primary")])
+    router = AIRouter([provider])
+
+    async def collect():
+        return [chunk async for chunk in router.astream(AIRequest(prompt="hello"))]
+
+    chunks = asyncio.run(collect())
+
+    assert len(chunks) == 1
+    assert chunks[0].text == "hello"
+    assert chunks[0].done is True
+
+
+def test_astream_uses_provider_astream_generate_when_available():
+    provider = StreamingProvider("streamer", [])
+    router = AIRouter([provider])
+
+    async def collect():
+        return [chunk async for chunk in router.astream(AIRequest(prompt="hello"))]
+
+    chunks = asyncio.run(collect())
+
+    assert [chunk.text for chunk in chunks] == ["apart-1", "apart-2"]
+    assert chunks[-1].done is True

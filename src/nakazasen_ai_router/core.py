@@ -5,6 +5,7 @@ This module intentionally contains no real AI provider calls.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
@@ -12,11 +13,17 @@ from email.utils import parsedate_to_datetime
 from typing import Any, Mapping, Sequence
 from datetime import datetime, timezone
 
+from .capabilities import ModelCapability, capability_for, score_candidate_for_task
+from .state import MemoryStateStore, RouterStateStore
+
 LOGGER = logging.getLogger(__name__)
 SENSITIVE_KEYS = {"api_key", "apikey", "token", "secret", "authorization", "password", "raw_key"}
 
 AUTH_HINTS = ("401", "403", "unauthorized", "authentication", "auth failure", "invalid api key", "incorrect api key", "permission denied", "forbidden", "api key", "invalid key")
-QUOTA_HINTS = ("429", "quota", "rate limit", "rate_limit", "resource exhausted", "too many requests", "requests per day", "request per day", "rpd", "requests per minute", "request per minute", "rpm", "tokens per minute", "token per minute", "tpm", "daily limit", "daily quota", "free tier", "insufficient quota", "rate_limit_exceeded")
+DAILY_QUOTA_HINTS = ("daily limit", "daily quota", "requests per day", "request per day", "per day", "rpd", "quota exhausted", "quota exceeded for the day")
+BILLING_LIMIT_HINTS = ("billing", "payment required", "credit balance", "credits exhausted", "billing hard limit")
+INSUFFICIENT_QUOTA_HINTS = ("insufficient_quota", "insufficient quota", "not enough quota")
+QUOTA_HINTS = ("429", "quota", "rate limit", "rate_limit", "resource exhausted", "too many requests", "requests per minute", "request per minute", "rpm", "tokens per minute", "token per minute", "tpm", "free tier", "rate_limit_exceeded")
 TIMEOUT_HINTS = ("timeout", "timed out")
 TRANSPORT_HINTS = ("connection failed", "connection aborted", "connection refused", "connection reset", "connection error", "actively refused", "winerror 10061", "winerror 10054", "winerror 11001", "remote end closed connection", "temporary failure in name resolution", "name or service not known", "network is unreachable", "failed to establish a new connection", "max retries exceeded")
 MODEL_ERROR_HINTS = ("invalid model", "model not found", "unknown model", "unsupported model")
@@ -72,6 +79,42 @@ class AIResult:
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class AIStreamChunk:
+    """A safe text chunk yielded by sync or async streaming APIs."""
+
+    text: str
+    provider_name: str
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+    done: bool = False
+
+
+@dataclass(frozen=True)
+class AttemptRecord:
+    """Safe structured attempt metadata for callers and dashboards."""
+
+    provider: str
+    status: str
+    is_cloud: bool
+    model: str = ""
+    key_index: int = -1
+    key_id: str = ""
+    reason: str = ""
+    latency_ms: int = 0
+
+
+@dataclass(frozen=True)
+class AIRouteOutcome:
+    """Non-throwing route result for durable queue integrations."""
+
+    status: str
+    result: AIResult | None = None
+    error_type: str = ""
+    retry_after_seconds: float | None = None
+    attempts: Sequence[AttemptRecord] = field(default_factory=tuple)
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+
 @dataclass
 class ProviderHealth:
     """Mutable provider health state tracked by the router."""
@@ -119,6 +162,15 @@ class RouterPolicy:
     max_attempts: int = 1
     quota_cooldown_seconds: float = 60.0
     transient_cooldown_seconds: float = 15.0
+    task_type: str = "general"
+    quality_preference: str = "balanced"
+    capability_overrides: Mapping[tuple[str, str], ModelCapability] = field(default_factory=dict)
+    max_estimated_input_tokens: int | None = None
+    max_estimated_output_tokens: int | None = None
+    reject_over_budget: bool = True
+    backoff_base_seconds: float = 15.0
+    backoff_max_seconds: float = 3600.0
+    backoff_jitter_ratio: float = 0.0
 
 
 class ProviderBase:
@@ -142,16 +194,204 @@ class ProviderBase:
 class AIRouter:
     """Provider router with fallback, typed policy, attempts trace, and health handling."""
 
-    def __init__(self, providers: Sequence[ProviderBase | ProviderCandidate], policy: RouterPolicy | None = None) -> None:
+    def __init__(
+        self,
+        providers: Sequence[ProviderBase | ProviderCandidate],
+        policy: RouterPolicy | None = None,
+        state_store: RouterStateStore | None = None,
+    ) -> None:
         self.policy = policy or RouterPolicy()
+        self.state_store = state_store or MemoryStateStore()
         self.providers = self._normalize(providers)
+
+    def route_outcome(self, request: AIRequest) -> AIRouteOutcome:
+        """Route a request without raising for ordinary retry-later outcomes."""
+
+        try:
+            result = self.route(request)
+        except RouterError as exc:
+            attempts = tuple(self._attempt_record(attempt) for attempt in exc.attempts)
+            if exc.attempts and all(attempt.get("reason") == "budget_exceeded" for attempt in exc.attempts):
+                return AIRouteOutcome(
+                    status="failed",
+                    error_type="budget_exceeded",
+                    attempts=attempts,
+                )
+            retry_after = self._next_retry_after_seconds()
+            retryable_reasons = self._retryable_reasons()
+            reasons = {attempt.reason for attempt in attempts if attempt.reason}
+            status = "retry_later" if retry_after is not None or (reasons and reasons.issubset(retryable_reasons)) else "failed"
+            return AIRouteOutcome(
+                status=status,
+                error_type="all_providers_exhausted" if status == "retry_later" else "route_failed",
+                retry_after_seconds=retry_after,
+                attempts=attempts,
+            )
+        return AIRouteOutcome(status="success", result=result, attempts=tuple(self._attempt_record(attempt) for attempt in result.metadata.get("attempts", [])))
+
+    async def aroute_outcome(self, request: AIRequest) -> AIRouteOutcome:
+        """Async route outcome API.
+
+        Providers may implement a native `agenerate` coroutine. Providers without
+        native async support are executed in a worker thread to avoid blocking the
+        caller's event loop.
+        """
+
+        try:
+            result = await self.aroute(request)
+        except RouterError as exc:
+            attempts = tuple(self._attempt_record(attempt) for attempt in exc.attempts)
+            if exc.attempts and all(attempt.get("reason") == "budget_exceeded" for attempt in exc.attempts):
+                return AIRouteOutcome(
+                    status="failed",
+                    error_type="budget_exceeded",
+                    attempts=attempts,
+                )
+            retry_after = self._next_retry_after_seconds()
+            retryable_reasons = self._retryable_reasons()
+            reasons = {attempt.reason for attempt in attempts if attempt.reason}
+            status = "retry_later" if retry_after is not None or (reasons and reasons.issubset(retryable_reasons)) else "failed"
+            return AIRouteOutcome(
+                status=status,
+                error_type="all_providers_exhausted" if status == "retry_later" else "route_failed",
+                retry_after_seconds=retry_after,
+                attempts=attempts,
+            )
+        return AIRouteOutcome(status="success", result=result, attempts=tuple(self._attempt_record(attempt) for attempt in result.metadata.get("attempts", [])))
+
+    def stream(self, request: AIRequest):
+        """Yield text chunks, falling back to a single full-result chunk."""
+
+        stream_generate = self._first_stream_provider_method("stream_generate")
+        if callable(stream_generate):
+            yield from stream_generate(request)
+            return
+        result = self.route(request)
+        yield AIStreamChunk(text=result.text, provider_name=result.provider_name, metadata=sanitize_mapping(result.metadata), done=True)
+
+    async def astream(self, request: AIRequest):
+        """Async stream text chunks, falling back to the async route result."""
+
+        astream_generate = self._first_stream_provider_method("astream_generate")
+        if callable(astream_generate):
+            async for chunk in astream_generate(request):
+                yield chunk
+            return
+        result = await self.aroute(request)
+        yield AIStreamChunk(text=result.text, provider_name=result.provider_name, metadata=sanitize_mapping(result.metadata), done=True)
+
+    def _first_stream_provider_method(self, method_name: str) -> Any:
+        for candidate in self._ordered_candidates():
+            method = getattr(candidate.provider, method_name, None)
+            if callable(method):
+                return method
+        return None
+
+    async def aroute(self, request: AIRequest) -> AIResult:
+        """Async variant of `route()` with native async provider support."""
+
+        safe_metadata = sanitize_mapping(request.metadata)
+        LOGGER.info("Async routing AI request metadata=%s", safe_metadata)
+
+        budget_error = self._budget_error(request)
+        if budget_error:
+            raise RouterError("Request exceeded configured router budget", attempts=[self._budget_attempt(budget_error)])
+
+        attempts: list[dict[str, Any]] = []
+        for base_candidate in self._ordered_candidates(request):
+            provider = base_candidate.provider
+            skip_reason = self._skip_reason(provider)
+            if skip_reason:
+                attempts.append(self._attempt(provider, base_candidate, "skipped", reason=skip_reason))
+                continue
+            for candidate in self._candidate_list(provider, base_candidate)[: max(1, self.policy.max_attempts)]:
+                if not provider.health.is_available():
+                    attempts.append(self._attempt(provider, candidate, "skipped", reason="cooldown"))
+                    continue
+                candidate_state = self.state_store.get_key_model_state(provider.name, candidate.model, candidate.key_id)
+                if not candidate_state.is_available():
+                    attempts.append(self._attempt(provider, candidate, "skipped", reason="key_cooldown"))
+                    continue
+                started = time.time()
+                try:
+                    agenerate = getattr(provider, "agenerate", None)
+                    result = await agenerate(request, candidate) if callable(agenerate) else await asyncio.to_thread(provider.generate, request, candidate)
+                    latency_ms = round((time.time() - started) * 1000)
+                    self._mark_success(provider, latency_ms)
+                    self.state_store.record_success(provider.name, candidate.model, candidate.key_id, latency_ms=latency_ms)
+                    success_attempt = self._attempt(provider, candidate, "success", latency_ms=latency_ms)
+                    attempts.append(success_attempt)
+                    merged_metadata = dict(result.metadata)
+                    merged_metadata.setdefault("attempts", attempts)
+                    return AIResult(text=result.text, provider_name=result.provider_name or provider.name, metadata=merged_metadata)
+                except ProviderError as exc:
+                    latency_ms = round((time.time() - started) * 1000)
+                    error_type = classify_error(exc, status_code=getattr(exc, "status_code", None), response_body=getattr(exc, "response_body", None))
+                    retry_after = extract_retry_after_seconds(exc) or extract_retry_after_seconds({"retry_after": getattr(exc, "retry_after", None)})
+                    failure_streak = candidate_state.failure_streak + 1
+                    cooldown_seconds = self._cooldown_seconds_for_error(error_type, retry_after, failure_streak=failure_streak)
+                    cooldown_until = time.time() + cooldown_seconds if cooldown_seconds > 0 else 0.0
+                    provider_has_key_pool = len(getattr(provider, "api_keys", []) or []) > 1
+                    self._mark_failure(provider, error_type, str(exc), latency_ms, retry_after, provider_scope=not provider_has_key_pool)
+                    self.state_store.record_failure(provider.name, candidate.model, candidate.key_id, error_type=error_type, error_message=str(exc), latency_ms=latency_ms, cooldown_until=cooldown_until, disable=error_type == "auth_failure")
+                    attempts.append(self._attempt(provider, candidate, "failed", reason=error_type, latency_ms=latency_ms))
+        detail = ", ".join(f"{a['provider']}:{a.get('reason', a['status'])}" for a in attempts) or "no eligible providers"
+        raise RouterError(f"No provider returned a result: {detail}", attempts=attempts)
+
+    def export_state(self) -> dict[str, Any]:
+        """Export safe dashboard state for providers, models, and key IDs."""
+
+        now = time.time()
+        candidates: list[dict[str, Any]] = []
+        summary = {"healthy": 0, "cooldown": 0, "dead": 0, "unknown": 0, "total": 0, "next_retry_after_seconds": None}
+        next_retries: list[float] = []
+        for state in self.state_store.list_states():
+            retry_after = max(0.0, state.cooldown_until - now) if state.cooldown_until > now else None
+            status = state.status or "unknown"
+            if not state.enabled:
+                status = "dead"
+            elif retry_after is not None:
+                status = "cooldown"
+            elif status not in {"healthy", "cooldown", "dead"}:
+                status = "unknown"
+            if retry_after is not None:
+                next_retries.append(retry_after)
+            summary[status] = int(summary.get(status, 0)) + 1
+            summary["total"] = int(summary["total"] or 0) + 1
+            candidates.append(
+                sanitize_mapping(
+                    {
+                        "provider": state.provider,
+                        "model": state.model,
+                        "key_id": state.key_id,
+                        "status": status,
+                        "enabled": state.enabled,
+                        "cooldown_until": state.cooldown_until,
+                        "retry_after_seconds": retry_after,
+                        "last_error_type": state.last_error_type,
+                        "success_count": state.success_count,
+                        "failure_count": state.failure_count,
+                        "failure_streak": state.failure_streak,
+                        "last_latency_ms": state.last_latency_ms,
+                        "last_success_at": state.last_success_at,
+                        "last_failure_at": state.last_failure_at,
+                    }
+                )
+            )
+        if next_retries:
+            summary["next_retry_after_seconds"] = min(next_retries)
+        return {"summary": summary, "candidates": candidates}
 
     def route(self, request: AIRequest) -> AIResult:
         safe_metadata = sanitize_mapping(request.metadata)
         LOGGER.info("Routing AI request metadata=%s", safe_metadata)
 
+        budget_error = self._budget_error(request)
+        if budget_error:
+            raise RouterError("Request exceeded configured router budget", attempts=[self._budget_attempt(budget_error)])
+
         attempts: list[dict[str, Any]] = []
-        for base_candidate in self._ordered_candidates():
+        for base_candidate in self._ordered_candidates(request):
             provider = base_candidate.provider
             skip_reason = self._skip_reason(provider)
             if skip_reason:
@@ -163,11 +403,16 @@ class AIRouter:
                 if not provider.health.is_available():
                     attempts.append(self._attempt(provider, candidate, "skipped", reason="cooldown"))
                     continue
+                candidate_state = self.state_store.get_key_model_state(provider.name, candidate.model, candidate.key_id)
+                if not candidate_state.is_available():
+                    attempts.append(self._attempt(provider, candidate, "skipped", reason="key_cooldown"))
+                    continue
                 started = time.time()
                 try:
                     result = provider.generate(request, candidate)
                     latency_ms = round((time.time() - started) * 1000)
                     self._mark_success(provider, latency_ms)
+                    self.state_store.record_success(provider.name, candidate.model, candidate.key_id, latency_ms=latency_ms)
                     success_attempt = self._attempt(provider, candidate, "success", latency_ms=latency_ms)
                     attempts.append(success_attempt)
                     merged_metadata = dict(result.metadata)
@@ -177,19 +422,88 @@ class AIRouter:
                     latency_ms = round((time.time() - started) * 1000)
                     error_type = classify_error(exc, status_code=getattr(exc, "status_code", None), response_body=getattr(exc, "response_body", None))
                     retry_after = extract_retry_after_seconds(exc) or extract_retry_after_seconds({"retry_after": getattr(exc, "retry_after", None)})
-                    self._mark_failure(provider, error_type, str(exc), latency_ms, retry_after)
+                    failure_streak = candidate_state.failure_streak + 1
+                    cooldown_seconds = self._cooldown_seconds_for_error(error_type, retry_after, failure_streak=failure_streak)
+                    cooldown_until = time.time() + cooldown_seconds if cooldown_seconds > 0 else 0.0
+                    provider_has_key_pool = len(getattr(provider, "api_keys", []) or []) > 1
+                    self._mark_failure(provider, error_type, str(exc), latency_ms, retry_after, provider_scope=not provider_has_key_pool)
+                    self.state_store.record_failure(
+                        provider.name,
+                        candidate.model,
+                        candidate.key_id,
+                        error_type=error_type,
+                        error_message=str(exc),
+                        latency_ms=latency_ms,
+                        cooldown_until=cooldown_until,
+                        disable=error_type == "auth_failure",
+                    )
                     attempts.append(self._attempt(provider, candidate, "failed", reason=error_type, latency_ms=latency_ms))
                     LOGGER.warning("Provider %s failed with %s; trying next candidate", provider.name, error_type)
 
         detail = ", ".join(f"{a['provider']}:{a.get('reason', a['status'])}" for a in attempts) or "no eligible providers"
         raise RouterError(f"No provider returned a result: {detail}", attempts=attempts)
 
-    def _ordered_candidates(self) -> list[ProviderCandidate]:
+    @staticmethod
+    def _retryable_reasons() -> set[str]:
+        return {
+            "cooldown",
+            "key_cooldown",
+            "quota_rate_limit",
+            "quota_exhausted_daily",
+            "insufficient_quota",
+            "billing_limit",
+            "timeout",
+            "transport_error",
+            "unknown_transport_error",
+            "provider_5xx",
+        }
+
+
+    def _ordered_candidates(self, request: AIRequest | None = None) -> list[ProviderCandidate]:
         allowed = set(self.policy.allowed_providers or [item.provider.name for item in self.providers])
         avoid = set(self.policy.avoid_providers)
         last_resort = set(self.policy.last_resort_providers)
         candidates = [item for item in self.providers if item.provider.name in allowed and item.provider.name not in avoid]
-        return sorted(candidates, key=lambda item: (item.provider.name in last_resort, item.priority))
+        task_type = self._effective_task_type(request) if request is not None else self.policy.task_type
+        return sorted(candidates, key=lambda item: (item.provider.name in last_resort, -self._candidate_task_score(item, task_type), item.priority))
+
+    def _effective_task_type(self, request: AIRequest | None) -> str:
+        if request is not None and isinstance(request.metadata, Mapping):
+            task = str(request.metadata.get("task_type", "") or "").strip()
+            if task:
+                return task
+        return self.policy.task_type or "general"
+
+    def _candidate_task_score(self, candidate: ProviderCandidate, task_type: str) -> int:
+        model = candidate.model
+        if not model:
+            provider_candidates = candidate.provider.iter_candidates()
+            model = provider_candidates[0].model if provider_candidates else ""
+        capability = capability_for(candidate.provider.name, model, self.policy.capability_overrides)
+        return score_candidate_for_task(capability, task_type, self.policy.quality_preference)
+
+    def _budget_error(self, request: AIRequest) -> str:
+        if not self.policy.reject_over_budget or not isinstance(request.metadata, Mapping):
+            return ""
+        input_limit = self.policy.max_estimated_input_tokens
+        output_limit = self.policy.max_estimated_output_tokens
+        input_tokens = _optional_int(request.metadata.get("estimated_input_tokens"))
+        output_tokens = _optional_int(request.metadata.get("estimated_output_tokens"))
+        if input_limit is not None and input_tokens is not None and input_tokens > input_limit:
+            return "estimated_input_tokens"
+        if output_limit is not None and output_tokens is not None and output_tokens > output_limit:
+            return "estimated_output_tokens"
+        return ""
+
+    @staticmethod
+    def _budget_attempt(field: str) -> dict[str, Any]:
+        return {
+            "provider": "router",
+            "status": "failed",
+            "reason": "budget_exceeded",
+            "error_type": "budget_exceeded",
+            "budget_field": field,
+        }
 
     def _skip_reason(self, provider: ProviderBase) -> str:
         if self.policy.local_only and provider.is_cloud:
@@ -225,6 +539,33 @@ class AIRouter:
         return sanitize_mapping(payload)
 
     @staticmethod
+    def _attempt_record(attempt: Mapping[str, Any]) -> AttemptRecord:
+        return AttemptRecord(
+            provider=str(attempt.get("provider", "")),
+            status=str(attempt.get("status", "")),
+            is_cloud=bool(attempt.get("is_cloud", True)),
+            model=str(attempt.get("model", "")),
+            key_index=int(attempt.get("key_index", -1)),
+            key_id=str(attempt.get("key_id", "")),
+            reason=str(attempt.get("reason", "")),
+            latency_ms=int(attempt.get("latency_ms", 0)),
+        )
+
+    def _next_retry_after_seconds(self) -> float | None:
+        now = time.time()
+        candidates: list[float] = []
+        for state in self.state_store.list_states():
+            if state.enabled and state.cooldown_until > now:
+                candidates.append(state.cooldown_until - now)
+        for candidate in self.providers:
+            provider_cooldown = candidate.provider.health.cooldown_until
+            if candidate.provider.health.enabled and provider_cooldown > now:
+                candidates.append(provider_cooldown - now)
+        if not candidates:
+            return None
+        return max(0.0, min(candidates))
+
+    @staticmethod
     def _mark_success(provider: ProviderBase, latency_ms: int) -> None:
         provider.health.enabled = True
         provider.health.cooldown_until = 0.0
@@ -234,24 +575,44 @@ class AIRouter:
         provider.health.success_count += 1
         provider.health.last_latency_ms = latency_ms
 
-    def _mark_failure(self, provider: ProviderBase, error_type: str, message: str, latency_ms: int, retry_after_seconds: float | None) -> None:
+    def _mark_failure(
+        self,
+        provider: ProviderBase,
+        error_type: str,
+        message: str,
+        latency_ms: int,
+        retry_after_seconds: float | None,
+        *,
+        provider_scope: bool = True,
+    ) -> None:
         provider.health.last_error = message
         provider.health.last_error_type = error_type
         provider.health.consecutive_failures += 1
         provider.health.failure_count += 1
         provider.health.last_latency_ms = latency_ms
+        if not provider_scope:
+            return
         if error_type == "auth_failure":
             provider.health.enabled = False
-        cooldown = self._cooldown_seconds_for_error(error_type, retry_after_seconds)
+        cooldown = self._cooldown_seconds_for_error(error_type, retry_after_seconds, failure_streak=provider.health.consecutive_failures)
         if cooldown > 0:
             provider.health.cooldown_until = time.time() + cooldown
 
-    def _cooldown_seconds_for_error(self, error_type: str, retry_after_seconds: float | None) -> float:
-        if error_type == "quota_rate_limit":
-            return max(1.0, float(retry_after_seconds or self.policy.quota_cooldown_seconds))
-        if error_type in {"timeout", "transport_error", "unknown_transport_error", "provider_5xx"}:
-            return max(1.0, float(self.policy.transient_cooldown_seconds))
-        return 0.0
+    def _cooldown_seconds_for_error(self, error_type: str, retry_after_seconds: float | None, *, failure_streak: int = 1) -> float:
+        if error_type in {"quota_rate_limit", "quota_exhausted_daily", "insufficient_quota", "billing_limit"}:
+            base = float(retry_after_seconds or self.policy.quota_cooldown_seconds)
+        elif error_type in {"timeout", "transport_error", "unknown_transport_error", "provider_5xx"}:
+            base = float(self.policy.backoff_base_seconds or self.policy.transient_cooldown_seconds)
+        else:
+            return 0.0
+        streak = max(1, int(failure_streak or 1))
+        exponential = base * (2 ** (streak - 1))
+        capped = min(float(self.policy.backoff_max_seconds), exponential)
+        if retry_after_seconds is not None:
+            capped = max(capped, float(retry_after_seconds))
+        jitter_ratio = max(0.0, float(self.policy.backoff_jitter_ratio or 0.0))
+        jitter = capped * min(jitter_ratio, 1.0) * 0.5
+        return max(1.0, capped + jitter)
 
     @staticmethod
     def _normalize(providers: Sequence[ProviderBase | ProviderCandidate]) -> list[ProviderCandidate]:
@@ -285,6 +646,12 @@ def classify_error(error: Any, status_code: int | None = None, response_body: An
     detail = _build_error_detail(error, response_body)
     if any(token in detail for token in AUTH_HINTS):
         return "auth_failure"
+    if any(token in detail for token in BILLING_LIMIT_HINTS):
+        return "billing_limit"
+    if any(token in detail for token in INSUFFICIENT_QUOTA_HINTS):
+        return "insufficient_quota"
+    if any(token in detail for token in DAILY_QUOTA_HINTS):
+        return "quota_exhausted_daily"
     if any(token in detail for token in QUOTA_HINTS):
         return "quota_rate_limit"
     if any(token in detail for token in TOKEN_LIMIT_HINTS):
@@ -376,3 +743,12 @@ def sanitize_mapping(metadata: Mapping[str, Any]) -> dict[str, Any]:
         else:
             sanitized[key] = value
     return sanitized
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None

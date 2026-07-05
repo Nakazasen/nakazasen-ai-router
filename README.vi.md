@@ -65,6 +65,185 @@ py scripts/live_smoke.py --provider gemini --key-file "D:\duong_dan_ngoai\provid
 
 Kết quả in ra sẽ được lược bỏ thông tin nhạy cảm (sanitized), chỉ hiển thị tên nhà cung cấp, mô hình, trạng thái ĐẠT/LỖI (PASS/FAIL) và độ dài phản hồi.
 
+## Cấu hình nhiều API key cho cùng provider
+
+Router hỗ trợ biến môi trường dạng singular và plural. Dạng plural được đọc trước, sau đó merge thêm singular nếu chưa trùng:
+
+```text
+GEMINI_API_KEYS -> <gemini_key_1>,<gemini_key_2>,<gemini_key_3>
+OPENROUTER_API_KEYS -> <openrouter_key_1>,<openrouter_key_2>
+GROQ_API_KEYS -> <groq_key_1>,<groq_key_2>,<groq_key_3>
+
+# Vẫn tương thích cấu hình cũ
+GEMINI_API_KEY -> <single_gemini_key>
+```
+
+Khi một key/model gặp lỗi quota hoặc rate limit, router ghi cooldown theo candidate `provider + model + key_id` để có thể thử key khác cùng provider thay vì chặn toàn bộ provider ngay.
+
+## Task based routing và capability catalog
+
+Router có catalog năng lực model để chọn provider/model phù hợp hơn với từng loại tác vụ. Ví dụ, tác vụ dịch chương dài ưu tiên context dài và chất lượng ổn định; tác vụ sinh rẻ ưu tiên free/cheap model.
+
+```python
+from nakazasen_ai_router import AIRequest, AIRouter, RouterPolicy
+
+router = AIRouter(providers, policy=RouterPolicy(task_type="translation_longform"))
+result = router.route(AIRequest(prompt="Translate chapter 12..."))
+```
+
+Request có thể override task của policy:
+
+```python
+request = AIRequest(
+    prompt="Write a short blurb",
+    metadata={"task_type": "cheap_generation"},
+)
+```
+
+Các task type ban đầu gồm `translation_longform`, `summarization`, `cheap_generation`, `analysis`, `premium_quality`, `local_only`, và `json_structured`. Catalog là heuristic an toàn: nếu thiếu metadata cho model lạ, router fallback về điểm mặc định thay vì fail.
+
+## Budget guard và backoff nâng cao
+
+Router có thể chặn job quá lớn trước khi gọi provider, dựa trên token estimate do app truyền vào:
+
+```python
+router = create_router_from_env(
+    policy=RouterPolicy(
+        max_estimated_input_tokens=120_000,
+        max_estimated_output_tokens=8_000,
+    ),
+)
+
+outcome = router.route_outcome(
+    AIRequest(
+        prompt="Translate long chapter...",
+        metadata={
+            "estimated_input_tokens": 130_000,
+            "estimated_output_tokens": 4_000,
+        },
+    )
+)
+
+assert outcome.status == "failed"
+assert outcome.error_type == "budget_exceeded"
+```
+
+Retry/cooldown cũng dùng exponential backoff theo failure streak, có giới hạn trần và jitter cấu hình được:
+
+```python
+RouterPolicy(
+    backoff_base_seconds=15,
+    backoff_max_seconds=3600,
+    backoff_jitter_ratio=0.2,
+)
+```
+
+Nếu provider trả `Retry-After`, router tôn trọng giá trị đó như mức tối thiểu.
+
+## Streaming foundation và demo worker
+
+Router có API streaming nền tảng. Nếu provider chưa hỗ trợ streaming thật, router fallback thành một chunk chứa full result:
+
+```python
+for chunk in router.stream(AIRequest(prompt="Translate chapter...")):
+    print(chunk.text, chunk.done)
+```
+
+Async cũng có fallback tương tự:
+
+```python
+async for chunk in router.astream(AIRequest(prompt="Translate chapter...")):
+    print(chunk.text, chunk.done)
+```
+
+Repo có demo worker offline/mock-first để mô phỏng dịch nhiều chương, dùng SQLite state và `route_outcome()`:
+
+```powershell
+py examples/translation_worker_demo.py --offline-demo
+```
+
+Demo này không gọi API live và không cần API key thật.
+
+## API nhúng cho job queue bền vững
+
+`route()` vẫn là API cũ: thành công thì trả `AIResult`, thất bại thì raise `RouterError`.
+
+Với worker dịch chương dài, nên dùng `route_outcome()` để nhận trạng thái không-throwing:
+
+```python
+from nakazasen_ai_router import AIRequest, RouterPolicy, create_router_from_env
+
+router = create_router_from_env(
+    enable_network=True,
+    state_path="router_state.json",
+    policy=RouterPolicy(max_attempts=3),
+)
+
+outcome = router.route_outcome(AIRequest(prompt="Translate this chapter..."))
+
+if outcome.status == "success":
+    print(outcome.result.text)
+elif outcome.status == "retry_later":
+    # App bên ngoài nên lưu job và thử lại sau outcome.retry_after_seconds
+    print("Retry later:", outcome.retry_after_seconds)
+else:
+    print("Failed:", outcome.error_type)
+```
+
+State JSON chỉ lưu metadata vận hành an toàn: provider, model, key_id đã mask, loại lỗi, số lần thành công/thất bại và cooldown. Nó không lưu prompt, raw API key, header xác thực hay response thô.
+
+### Dashboard/admin state export
+
+App ngoài có thể gọi `export_state()` để lấy JSON-safe snapshot cho dashboard:
+
+```python
+snapshot = router.export_state()
+print(snapshot["summary"])
+```
+
+Snapshot gồm `summary` và danh sách `candidates`; không chứa prompt, raw key, header xác thực hoặc response thô.
+
+### Async worker/FastAPI
+
+Trong môi trường async, dùng API async để không block event loop của app:
+
+```python
+outcome = await router.aroute_outcome(AIRequest(prompt="Translate this chapter..."))
+result = await router.aroute(AIRequest(prompt="Summarize this text..."))
+```
+
+P2 hỗ trợ native async HTTP transport qua optional extra. Nếu muốn dùng transport async thật, cài:
+
+```powershell
+pip install nakazasen-ai-router[async]
+```
+
+Sau đó có thể bật async network trong factory:
+
+```python
+router = create_router_from_env(
+    enable_network=True,
+    enable_async_network=True,
+)
+```
+
+Nếu provider/caller không cấu hình async HTTP client, async API vẫn fallback an toàn qua worker thread để giữ tương thích.
+
+### SQLite state store cho nhiều worker local
+
+Nếu có nhiều worker/process trên cùng máy hoặc cùng filesystem, dùng SQLite thay JSON:
+
+```python
+router = create_router_from_env(
+    enable_network=True,
+    state_path="router_state.sqlite3",
+    state_backend="sqlite",
+    policy=RouterPolicy(max_attempts=3),
+)
+```
+
+SQLite store chỉ lưu current state của `provider + model + key_id`. Nó không lưu attempt log để tránh phình DB và giảm rủi ro lộ metadata.
+
 ## Cách tự quét tìm mô hình mới (Gemini Model Discovery)
 
 Tính năng tự quét mô hình mới là tự nguyện (opt-in). Nó giúp bạn truy vấn danh sách mô hình hiện có từ nhà cung cấp nhưng **không** tự động đưa các mô hình mới quét được vào danh mục chạy mặc định.

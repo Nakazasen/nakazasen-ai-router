@@ -35,7 +35,20 @@ class MockHTTPClient:
         return response
 
 
-def make_provider(http_client, *, api_keys=None, models=None):
+class MockAsyncHTTPClient:
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self.calls = []
+
+    async def post(self, url, *, headers, json, timeout):
+        self.calls.append({"url": url, "headers": dict(headers), "json": json, "timeout": timeout})
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+
+def make_provider(http_client, *, async_http_client=None, api_keys=None, models=None):
     return OpenAICompatibleProvider(
         name="openai_like",
         base_url="https://example.test/v1",
@@ -43,6 +56,7 @@ def make_provider(http_client, *, api_keys=None, models=None):
         models=models or ["model-a"],
         is_cloud=True,
         http_client=http_client,
+        async_http_client=async_http_client,
         timeout=5,
     )
 
@@ -184,3 +198,25 @@ def test_local_only_does_not_call_cloud_openai_provider():
         AIRouter([provider], policy=RouterPolicy(local_only=True)).route(AIRequest(prompt="hello"))
 
     assert client.calls == []
+
+
+def test_native_async_provider_agenerate_uses_async_client():
+    sync_client = MockHTTPClient([])
+    async_client = MockAsyncHTTPClient([success_response("async ok")])
+    provider = make_provider(sync_client, async_http_client=async_client)
+
+    result = __import__("asyncio").run(provider.agenerate(AIRequest(prompt="hello async")))
+
+    assert result.text == "async ok"
+    assert sync_client.calls == []
+    assert async_client.calls[0]["json"]["messages"] == [{"role": "user", "content": "hello async"}]
+
+
+def test_native_async_provider_429_raises_quota_error():
+    async_client = MockAsyncHTTPClient([MockResponse(status_code=429, payload={"error": {"message": "rate limit"}})])
+    provider = make_provider(MockHTTPClient([]), async_http_client=async_client)
+
+    with pytest.raises(Exception) as exc_info:
+        __import__("asyncio").run(provider.agenerate(AIRequest(prompt="hello")))
+
+    assert type(exc_info.value).__name__ == "ProviderQuotaError"

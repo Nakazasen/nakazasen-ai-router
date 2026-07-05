@@ -10,7 +10,7 @@ import socket
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any, Mapping, Protocol
 
 
 @dataclass
@@ -21,6 +21,35 @@ class HTTPResponse:
 
     def json(self) -> Any:
         return json_module.loads(self.text)
+
+
+class AsyncHTTPClient(Protocol):
+    async def post(self, url: str, *, headers: Mapping[str, str], json: Mapping[str, Any], timeout: float) -> Any:
+        """Send an async POST request and return a response-like object."""
+
+
+class HttpxAsyncHTTPClient:
+    """Optional httpx-based async HTTP client.
+
+    Install with `nakazasen-ai-router[async]` to use this transport.
+    """
+
+    def __init__(self) -> None:
+        try:
+            import httpx  # type: ignore
+        except ImportError as exc:
+            raise RuntimeError("Install nakazasen-ai-router[async] to use native async HTTP transport") from exc
+        self._httpx = httpx
+
+    async def post(self, url: str, *, headers: Mapping[str, str], json: Mapping[str, Any], timeout: float) -> Any:
+        try:
+            async with self._httpx.AsyncClient(timeout=timeout) as client:
+                return await client.post(url, headers=dict(headers), json=dict(json))
+        except self._httpx.TimeoutException as exc:
+            raise TimeoutError("HTTP request timed out") from exc
+
+    def __repr__(self) -> str:
+        return "HttpxAsyncHTTPClient()"
 
 
 class UrllibHTTPClient:

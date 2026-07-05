@@ -7,6 +7,7 @@ with a `post(...)` method, which keeps unit tests offline and deterministic.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from typing import Any, Mapping, Protocol
@@ -31,6 +32,11 @@ class HTTPClient(Protocol):
         """Send a POST request and return a response-like object."""
 
 
+class AsyncHTTPClient(Protocol):
+    async def post(self, url: str, *, headers: Mapping[str, str], json: Mapping[str, Any], timeout: float) -> Any:
+        """Send an async POST request and return a response-like object."""
+
+
 class OpenAICompatibleProvider(ProviderBase):
     """Generic OpenAI-compatible chat completions provider.
 
@@ -47,6 +53,7 @@ class OpenAICompatibleProvider(ProviderBase):
         models: list[str] | tuple[str, ...],
         is_cloud: bool,
         http_client: HTTPClient,
+        async_http_client: AsyncHTTPClient | None = None,
         timeout: float = 30.0,
     ) -> None:
         super().__init__(name, is_cloud=is_cloud)
@@ -54,6 +61,7 @@ class OpenAICompatibleProvider(ProviderBase):
         self.api_keys = [key for key in api_keys if str(key or "").strip()]
         self.models = [model for model in models if str(model or "").strip()]
         self.http_client = http_client
+        self.async_http_client = async_http_client
         self.timeout = max(0.1, float(timeout))
         self._next_key_index = 0
         self._next_model_index = 0
@@ -84,17 +92,7 @@ class OpenAICompatibleProvider(ProviderBase):
     def generate(self, request: AIRequest, candidate: ProviderCandidate | None = None) -> AIResult:
         candidate = candidate or self._default_candidate()
         started = time.time()
-        payload = {
-            "model": candidate.model or (self.models[0] if self.models else ""),
-            "messages": _messages_from_request(request),
-        }
-        headers = {
-            "Content-Type": "application/json",
-            "User-Agent": "nakazasen-ai-router/0.1",
-        }
-        api_key = self._api_key_for(candidate.key_index)
-        if api_key:
-            headers["Authorization"] = f"Bearer {api_key}"
+        payload, headers = self._build_payload_and_headers(request, candidate)
 
         try:
             response = self.http_client.post(
@@ -110,16 +108,61 @@ class OpenAICompatibleProvider(ProviderBase):
             self._advance_after_failure(candidate, "timeout")
             raise
         except Exception as exc:
-            if _looks_like_timeout(exc):
-                self._advance_after_failure(candidate, "timeout")
-                raise ProviderTimeoutError("OpenAI-compatible request timed out") from exc
-            status_code = _status_code(exc)
-            if status_code:
-                self._advance_after_failure(candidate, "http_error")
-                raise _error_for_status(status_code, _safe_error_message(exc), exc) from exc
-            self._advance_after_failure(candidate, "transport_error")
-            raise ProviderError(_safe_error_message(exc)) from exc
+            self._raise_transport_error(exc, candidate)
 
+        return self._result_from_response(response, candidate, started)
+
+    async def agenerate(self, request: AIRequest, candidate: ProviderCandidate | None = None) -> AIResult:
+        candidate = candidate or self._default_candidate()
+        if self.async_http_client is None:
+            return await asyncio.to_thread(self.generate, request, candidate)
+        started = time.time()
+        payload, headers = self._build_payload_and_headers(request, candidate)
+
+        try:
+            response = await self.async_http_client.post(
+                self._chat_completions_url(),
+                headers=headers,
+                json=payload,
+                timeout=self.timeout,
+            )
+        except TimeoutError as exc:
+            self._advance_after_failure(candidate, "timeout")
+            raise ProviderTimeoutError("OpenAI-compatible request timed out") from exc
+        except ProviderTimeoutError:
+            self._advance_after_failure(candidate, "timeout")
+            raise
+        except Exception as exc:
+            self._raise_transport_error(exc, candidate)
+
+        return self._result_from_response(response, candidate, started)
+
+    def _build_payload_and_headers(self, request: AIRequest, candidate: ProviderCandidate) -> tuple[dict[str, Any], dict[str, str]]:
+        payload = {
+            "model": candidate.model or (self.models[0] if self.models else ""),
+            "messages": _messages_from_request(request),
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "nakazasen-ai-router/0.1",
+        }
+        api_key = self._api_key_for(candidate.key_index)
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        return payload, headers
+
+    def _raise_transport_error(self, exc: Exception, candidate: ProviderCandidate) -> None:
+        if _looks_like_timeout(exc):
+            self._advance_after_failure(candidate, "timeout")
+            raise ProviderTimeoutError("OpenAI-compatible request timed out") from exc
+        status_code = _status_code(exc)
+        if status_code:
+            self._advance_after_failure(candidate, "http_error")
+            raise _error_for_status(status_code, _safe_error_message(exc), exc) from exc
+        self._advance_after_failure(candidate, "transport_error")
+        raise ProviderError(_safe_error_message(exc)) from exc
+
+    def _result_from_response(self, response: Any, candidate: ProviderCandidate, started: float) -> AIResult:
         status_code = _status_code(response) or 200
         if status_code >= 400:
             self._advance_after_failure(candidate, "http_error")
