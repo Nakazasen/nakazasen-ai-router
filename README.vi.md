@@ -11,10 +11,10 @@ Xem [docs/path_hygiene.vi.md](docs/path_hygiene.vi.md) để biết guard chốn
 ## Stable install
 
 ```powershell
-pip install git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.1
+pip install git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.2
 ```
 
-Release notes: [0.2.1.md](docs/releases/0.2.1.md)
+Release notes: [0.2.2.md](docs/releases/0.2.2.md)
 
 
 Nakazasen AI Router là một lớp cung cấp năng lực AI đa nhiệm cho ứng dụng Python. Nó điều phối request AI qua nhiều provider local/cloud, quản lý sức khỏe provider/model/key và giúp repo khác dùng AI bền vững mà không buộc core vào một domain cụ thể.

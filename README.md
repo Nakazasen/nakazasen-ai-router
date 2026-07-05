@@ -11,10 +11,10 @@ See [docs/path_hygiene.md](docs/path_hygiene.md) for the local path/key-file gua
 ## Stable install
 
 ```powershell
-pip install git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.1
+pip install git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.2
 ```
 
-Release notes: [0.2.1.md](docs/releases/0.2.1.md)
+Release notes: [0.2.2.md](docs/releases/0.2.2.md)
 
 
 Vietnamese documentation: [README.vi.md](README.vi.md)

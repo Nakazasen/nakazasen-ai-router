@@ -1,14 +1,14 @@
-﻿# Cài đặt, cập nhật và gỡ cài đặt
+# Cài đặt, cập nhật và gỡ cài đặt
 
 ## Cài bản release cố định
 
 ```powershell
-py -m pip install "nakazasen-ai-router @ git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.1"
+py -m pip install "nakazasen-ai-router @ git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.2"
 ```
 
 ## Cập nhật lên tag mới
 
-Khi có `v0.2.2`:
+Để refresh tag stable hiện tại hoặc chuyển từ `v0.2.1` lên `v0.2.2`:
 
 ```powershell
 py -m pip install --upgrade --force-reinstall "nakazasen-ai-router @ git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.2"

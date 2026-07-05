@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.2 - 2026-07-05
+
 - Add provider key onboarding docs, local-only key setup helpers, and install/update guidance.
 - Add local path leak guard for machine-specific paths and key file names.
 

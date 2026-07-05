@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nakazasen-ai-router"
-version = "0.2.1"
+version = "0.2.2"
 description = "Embeddable Python AI provider router with token-pool state, async support, and durable routing outcomes."
 readme = "README.md"
 requires-python = ">=3.10"

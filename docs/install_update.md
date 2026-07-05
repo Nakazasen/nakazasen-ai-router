@@ -1,14 +1,14 @@
-﻿# Install, update, and uninstall
+# Install, update, and uninstall
 
 ## Install a pinned release
 
 ```powershell
-py -m pip install "nakazasen-ai-router @ git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.1"
+py -m pip install "nakazasen-ai-router @ git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.2"
 ```
 
 ## Update to a newer tag
 
-When `v0.2.2` exists:
+To refresh the current stable tag or move from `v0.2.1` to `v0.2.2`:
 
 ```powershell
 py -m pip install --upgrade --force-reinstall "nakazasen-ai-router @ git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.2"
