@@ -19,6 +19,7 @@ def test_multi_domain_examples_run_offline(tmp_path):
         "segmented_batch_demo.py",
         "job_queue_worker_demo.py",
         "quota_policy_demo.py",
+        "sdk_worker_stack_demo.py",
     ]
     for example in examples:
         module = load_example(example)

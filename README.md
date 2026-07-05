@@ -254,6 +254,10 @@ py scripts/discover_models.py --provider gemini --key-file "D:\path\to\provider_
 
 A discovered model must pass live validation and be manually reviewed before being added to the runtime catalog.
 
+## SDK-first integration
+
+Use [docs/sdk_integration.md](docs/sdk_integration.md) and [docs/integration_blueprints.md](docs/integration_blueprints.md) to embed this package directly into other Python repos without a Router Server.
+
 ## Quota and capacity policies
 
 Use [docs/quota_policy.md](docs/quota_policy.md) for optional provider/model/key capacity limits, fallback sorting, and in-memory throttling.

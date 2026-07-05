@@ -247,6 +247,10 @@ router = create_router_from_env(
 
 SQLite store chỉ lưu current state của `provider + model + key_id`. Nó không lưu attempt log để tránh phình DB và giảm rủi ro lộ metadata.
 
+## Tích hợp SDK-first
+
+Xem [docs/sdk_integration.vi.md](docs/sdk_integration.vi.md) và [docs/integration_blueprints.vi.md](docs/integration_blueprints.vi.md) để nhúng package trực tiếp vào repo Python khác mà không cần Router Server.
+
 ## Quota và capacity policy
 
 Xem [docs/quota_policy.vi.md](docs/quota_policy.vi.md) để dùng giới hạn provider/model/key, fallback sorting và throttle in-memory.
