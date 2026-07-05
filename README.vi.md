@@ -1,5 +1,9 @@
 # Nakazasen AI Router
 
+## Vệ sinh đường dẫn
+
+Xem [docs/path_hygiene.vi.md](docs/path_hygiene.vi.md) để biết guard chống commit nhầm path local hoặc tên file key thật.
+
 ## Stable install
 
 ```powershell

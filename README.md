@@ -1,5 +1,9 @@
 # Nakazasen AI Router
 
+## Path hygiene
+
+See [docs/path_hygiene.md](docs/path_hygiene.md) for the local path/key-file guard used to keep the repository portable.
+
 ## Stable install
 
 ```powershell
