@@ -13,6 +13,7 @@ This project follows pre-1.0 semantic versioning: public root exports are docume
 - Multi-domain offline examples for summarization, JSON extraction, and content generation.
 - Generic workload aliases such as `long_context`, `cheap_batch`, `structured_json`, `low_latency`, `premium_reasoning`, and `private_local`.
 - Positioning audit script and tests to prevent translation-only narrative drift.
+- Opt-in live provider conformance script and docs with sanitized leak checks.
 
 ### Changed
 

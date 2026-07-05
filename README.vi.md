@@ -247,6 +247,10 @@ router = create_router_from_env(
 
 SQLite store chỉ lưu current state của `provider + model + key_id`. Nó không lưu attempt log để tránh phình DB và giảm rủi ro lộ metadata.
 
+## Live provider conformance
+
+Xem [docs/live_conformance.vi.md](docs/live_conformance.vi.md) để chạy kiểm chứng provider thật opt-in và đã sanitize.
+
 ## Cách tự quét tìm mô hình mới (Gemini Model Discovery)
 
 Tính năng tự quét mô hình mới là tự nguyện (opt-in). Nó giúp bạn truy vấn danh sách mô hình hiện có từ nhà cung cấp nhưng **không** tự động đưa các mô hình mới quét được vào danh mục chạy mặc định.
