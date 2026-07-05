@@ -254,6 +254,10 @@ py scripts/discover_models.py --provider gemini --key-file "D:\path\to\provider_
 
 A discovered model must pass live validation and be manually reviewed before being added to the runtime catalog.
 
+## Static local dashboard
+
+Open [examples/dashboard_static/index.html](examples/dashboard_static/index.html) or read [docs/dashboard_static.md](docs/dashboard_static.md) for a no-server dashboard that renders router/job/quota metrics JSON.
+
 ## SDK-first integration
 
 Use [docs/sdk_integration.md](docs/sdk_integration.md) and [docs/integration_blueprints.md](docs/integration_blueprints.md) to embed this package directly into other Python repos without a Router Server.

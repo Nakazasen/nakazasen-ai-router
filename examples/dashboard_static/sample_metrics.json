@@ -1,0 +1,42 @@
+﻿{
+  "generated_at": 1783263600,
+  "router": {
+    "total_candidates": 3,
+    "healthy": 2,
+    "cooldown": 1,
+    "dead": 0,
+    "unknown": 0,
+    "success_count": 128,
+    "failure_count": 6,
+    "failure_streak_max": 2,
+    "latency_ms_avg": 842,
+    "error_type_counts": {"quota": 3, "timeout": 2},
+    "by_provider": {
+      "gemini": {"total": 1, "healthy": 1, "cooldown": 0, "dead": 0, "unknown": 0},
+      "groq": {"total": 1, "healthy": 0, "cooldown": 1, "dead": 0, "unknown": 0},
+      "local": {"total": 1, "healthy": 1, "cooldown": 0, "dead": 0, "unknown": 0}
+    }
+  },
+  "jobs": {
+    "total_jobs": 147,
+    "by_status": {"pending": 12, "running": 2, "succeeded": 128, "retry_later": 5, "failed": 0, "canceled": 0},
+    "due_now": 9,
+    "expired_running": 0,
+    "max_attempts_reached": 0,
+    "by_workload_type": {"summarization": 44, "structured_json": 21, "content_generation": 40, "sdk_worker_stack": 42},
+    "error_type_counts": {"quota": 3, "timeout": 2}
+  },
+  "quota": {
+    "profiles": [
+      {"provider": "local", "model": "", "has_key_scope": false, "policy": {"requests_per_minute": null, "tokens_per_minute": null, "requests_per_day": null, "max_concurrency": 2, "cost_tier": "free", "fallback_priority": 1, "enabled": true}, "usage": {"requests_last_minute": 8, "tokens_last_minute": 1200, "requests_today": 88, "in_flight": 1, "last_error_type": ""}},
+      {"provider": "gemini", "model": "gemini-2.5-flash", "has_key_scope": true, "policy": {"requests_per_minute": 10, "tokens_per_minute": 120000, "requests_per_day": null, "max_concurrency": 2, "cost_tier": "free", "fallback_priority": 2, "enabled": true}, "usage": {"requests_last_minute": 6, "tokens_last_minute": 42000, "requests_today": 128, "in_flight": 1, "last_error_type": ""}},
+      {"provider": "premium", "model": "", "has_key_scope": false, "policy": {"requests_per_minute": 30, "tokens_per_minute": 300000, "requests_per_day": 200, "max_concurrency": 4, "cost_tier": "premium", "fallback_priority": 10, "enabled": false}, "usage": {"requests_last_minute": 0, "tokens_last_minute": 0, "requests_today": 0, "in_flight": 0, "last_error_type": "disabled"}}
+    ]
+  },
+  "blueprints": [
+    {"repo": "mat-the-website", "pattern": "Backend SDK", "workloads": ["content_generation", "summarization"], "pieces": ["AIRouter", "quota", "metrics"]},
+    {"repo": "translation_app", "pattern": "Embedded worker", "workloads": ["long_context", "segmented_batch"], "pieces": ["segment_text", "SQLiteJobStore", "AIRouter"]},
+    {"repo": "AIOS_habbit", "pattern": "Local assistant", "workloads": ["reasoning", "planning", "summarization"], "pieces": ["AIRouter", "SQLiteJobStore", "collect_metrics"]},
+    {"repo": "SlideGenius", "pattern": "Generation pipeline", "workloads": ["structured_json", "content_generation"], "pieces": ["segment_text", "quota", "AIRouter"]}
+  ]
+}

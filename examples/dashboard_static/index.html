@@ -1,0 +1,81 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Static local control center for Nakazasen AI Router metrics, jobs, quota, and SDK integration blueprints." />
+  <title>Nakazasen AI Router Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Dashboard navigation">
+      <div class="brand"><span class="logo">N</span><div><strong>Nakazasen</strong><small>AI Router</small></div></div>
+      <nav>
+        <a href="#overview">Overview</a>
+        <a href="#providers">Providers</a>
+        <a href="#jobs">Jobs</a>
+        <a href="#quota">Quota</a>
+        <a href="#metrics">Metrics</a>
+        <a href="#blueprints">SDK Blueprints</a>
+      </nav>
+    </aside>
+    <main>
+      <header class="hero" id="overview">
+        <div>
+          <p class="eyebrow">AI Capacity Layer</p>
+          <h1>General-purpose AI Router</h1>
+          <p class="subtitle">Route, segment, queue, observe, and throttle AI workloads across providers without a Router Server.</p>
+        </div>
+        <div class="status-pill"><span class="pulse"></span><span id="healthLabel">Operational</span></div>
+      </header>
+
+      <section class="grid stats" aria-label="Overview stats">
+        <article class="card"><small>Providers</small><strong id="providerTotal">0</strong><span id="providerHealthy">0 healthy</span></article>
+        <article class="card"><small>Total jobs</small><strong id="jobTotal">0</strong><span id="jobActive">0 active</span></article>
+        <article class="card"><small>Success count</small><strong id="successCount">0</strong><span id="failureCount">0 failures</span></article>
+        <article class="card"><small>Average latency</small><strong id="latencyAvg">--</strong><span>last known</span></article>
+      </section>
+
+      <section class="panel" id="providers">
+        <div class="section-title"><h2>Provider Health</h2><p>Provider/model capacity at a glance.</p></div>
+        <div class="provider-grid" id="providerCards"></div>
+      </section>
+
+      <section class="panel" id="jobs">
+        <div class="section-title"><h2>Job Queue</h2><p>Durable background AI workload state.</p></div>
+        <div id="jobBars" class="bars"></div>
+      </section>
+
+      <section class="panel" id="quota">
+        <div class="section-title"><h2>Quota & Capacity</h2><p>Process-local provider limits and usage snapshots.</p></div>
+        <div class="quota-grid" id="quotaCards"></div>
+      </section>
+
+      <section class="panel split" id="metrics">
+        <div>
+          <div class="section-title"><h2>Metrics Snapshot</h2><p>Safe JSON summary loaded locally.</p></div>
+          <pre id="metricsSummary" class="code-box"></pre>
+        </div>
+        <div class="import-box">
+          <h2>Import JSON</h2>
+          <label for="jsonInput">Paste metrics or SDK demo JSON</label>
+          <textarea id="jsonInput" rows="9" spellcheck="false"></textarea>
+          <div class="actions">
+            <button id="parseButton" type="button">Render pasted JSON</button>
+            <label class="file-label" for="jsonFile">Upload JSON file</label>
+            <input id="jsonFile" type="file" accept="application/json,.json" />
+          </div>
+          <p id="importStatus" class="status-text" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="panel" id="blueprints">
+        <div class="section-title"><h2>SDK Integration Blueprints</h2><p>Where this AI brain layer plugs into your projects.</p></div>
+        <div class="blueprint-grid" id="blueprintCards"></div>
+      </section>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

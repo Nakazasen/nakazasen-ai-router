@@ -19,6 +19,7 @@ This project follows pre-1.0 semantic versioning: public root exports are docume
 - Metrics/observability snapshots with sanitized router/job queue JSON and CLI.
 - Provider quota/capacity policy primitives, in-memory tracker, fallback sorting, docs, tests, and offline demo.
 - SDK-first external integration hardening with wheel install smoke, full-stack SDK demo, and integration blueprints.
+- Static local dashboard prototype with sample metrics, paste/upload JSON rendering, docs, and tests.
 
 ### Changed
 

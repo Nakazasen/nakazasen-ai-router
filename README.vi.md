@@ -247,6 +247,10 @@ router = create_router_from_env(
 
 SQLite store chỉ lưu current state của `provider + model + key_id`. Nó không lưu attempt log để tránh phình DB và giảm rủi ro lộ metadata.
 
+## Static local dashboard
+
+Mở [examples/dashboard_static/index.html](examples/dashboard_static/index.html) hoặc đọc [docs/dashboard_static.vi.md](docs/dashboard_static.vi.md) để dùng dashboard không server render JSON metrics router/job/quota.
+
 ## Tích hợp SDK-first
 
 Xem [docs/sdk_integration.vi.md](docs/sdk_integration.vi.md) và [docs/integration_blueprints.vi.md](docs/integration_blueprints.vi.md) để nhúng package trực tiếp vào repo Python khác mà không cần Router Server.
