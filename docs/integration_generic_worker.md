@@ -85,6 +85,8 @@ async def process_job_async(job):
 
 For persistent workers, see [job_queue.md](job_queue.md) for `SQLiteJobStore` enqueue/claim/retry patterns.
 
+Collect safe operational snapshots with `collect_metrics(router, job_store).to_dict()`; see [metrics.md](metrics.md).
+
 ## Operational snapshot
 
 ```python

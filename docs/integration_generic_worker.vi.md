@@ -85,6 +85,8 @@ async def process_job_async(job):
 
 Với worker bền vững, xem [job_queue.vi.md](job_queue.vi.md) để dùng pattern `SQLiteJobStore` enqueue/claim/retry.
 
+Thu thập snapshot vận hành an toàn bằng `collect_metrics(router, job_store).to_dict()`; xem [metrics.vi.md](metrics.vi.md).
+
 ## Snapshot vận hành
 
 ```python

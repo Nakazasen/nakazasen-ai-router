@@ -29,6 +29,10 @@ EXPECTED_PUBLIC_NAMES = {
     "JobStore",
     "SQLiteJobStore",
     "sanitize_job_metadata",
+    "MetricsSnapshot",
+    "collect_router_metrics",
+    "collect_job_metrics",
+    "collect_metrics",
     "ChunkingPolicy",
     "WorkChunk",
     "estimate_tokens",
@@ -61,9 +65,11 @@ def test_public_api_capability_helper_smoke():
     score = nar.score_candidate_for_task(capability, "translation_longform")
     chunks = nar.segment_text("hello world", nar.ChunkingPolicy(max_estimated_tokens=100))
     safe_metadata = nar.sanitize_job_metadata({"prompt": "secret", "job_id": "j1"})
+    metrics = nar.collect_metrics().to_dict()
 
     assert isinstance(capability, nar.ModelCapability)
     assert score > 0
     assert isinstance(chunks[0], nar.WorkChunk)
     assert safe_metadata == {"job_id": "j1"}
+    assert "router" in metrics and "jobs" in metrics
     assert nar.merge_chunk_texts(["a", "b"]) == "a\nb"

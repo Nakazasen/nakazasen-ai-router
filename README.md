@@ -254,6 +254,10 @@ py scripts/discover_models.py --provider gemini --key-file "D:\path\to\provider_
 
 A discovered model must pass live validation and be manually reviewed before being added to the runtime catalog.
 
+## Metrics snapshots
+
+Use [docs/metrics.md](docs/metrics.md) and `scripts/router_metrics.py` for sanitized router/job queue observability JSON.
+
 ## Persistent job queue
 
 Use [docs/job_queue.md](docs/job_queue.md) for the optional SQLite queue adapter that supports enqueue, claim, lease, retry, success, and failure without storing raw payloads.

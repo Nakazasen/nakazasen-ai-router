@@ -20,6 +20,7 @@ from .core import (
     RouterPolicy,
 )
 from .jobs import JobRecord, JobStatus, JobStore, SQLiteJobStore, sanitize_job_metadata
+from .metrics import MetricsSnapshot, collect_job_metrics, collect_metrics, collect_router_metrics
 from .segmentation import ChunkingPolicy, WorkChunk, estimate_tokens, merge_chunk_texts, segment_text
 from .state import JsonStateStore, KeyModelState, MemoryStateStore
 from .storage_sqlite import SQLiteStateStore
@@ -47,6 +48,10 @@ __all__ = [
     "JobStore",
     "SQLiteJobStore",
     "sanitize_job_metadata",
+    "MetricsSnapshot",
+    "collect_router_metrics",
+    "collect_job_metrics",
+    "collect_metrics",
     "ChunkingPolicy",
     "WorkChunk",
     "estimate_tokens",

@@ -16,6 +16,7 @@ This project follows pre-1.0 semantic versioning: public root exports are docume
 - Opt-in live provider conformance script and docs with sanitized leak checks.
 - Generic segmentation/aggregation primitives, docs, tests, and offline segmented batch demo.
 - Persistent generic SQLite job queue adapter, docs, tests, and offline worker demo.
+- Metrics/observability snapshots with sanitized router/job queue JSON and CLI.
 
 ### Changed
 

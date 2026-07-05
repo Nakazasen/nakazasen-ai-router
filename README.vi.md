@@ -247,6 +247,10 @@ router = create_router_from_env(
 
 SQLite store chỉ lưu current state của `provider + model + key_id`. Nó không lưu attempt log để tránh phình DB và giảm rủi ro lộ metadata.
 
+## Metrics snapshot
+
+Xem [docs/metrics.vi.md](docs/metrics.vi.md) và `scripts/router_metrics.py` để xuất JSON observability an toàn cho router/job queue.
+
 ## Job queue bền vững
 
 Xem [docs/job_queue.vi.md](docs/job_queue.vi.md) để dùng SQLite queue adapter tùy chọn cho enqueue, claim, lease, retry, success/fail mà không lưu raw payload.
