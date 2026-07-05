@@ -87,6 +87,14 @@ Với worker bền vững, xem [job_queue.vi.md](job_queue.vi.md) để dùng pa
 
 Thu thập snapshot vận hành an toàn bằng `collect_metrics(router, job_store).to_dict()`; xem [metrics.vi.md](metrics.vi.md).
 
+Dùng quota check trước các lệnh gọi đắt; xem [quota_policy.vi.md](quota_policy.vi.md).
+
+```python
+check = quota.reserve(provider, model, estimated_tokens=chunk.estimated_tokens)
+if check.decision != QuotaDecision.ALLOW:
+    jobs.mark_retry_later(job.job_id, retry_after_seconds=check.retry_after_seconds, error_type=check.reason)
+```
+
 ## Snapshot vận hành
 
 ```python

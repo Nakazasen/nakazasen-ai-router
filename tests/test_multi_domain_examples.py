@@ -18,10 +18,14 @@ def test_multi_domain_examples_run_offline(tmp_path):
         "content_generation_demo.py",
         "segmented_batch_demo.py",
         "job_queue_worker_demo.py",
+        "quota_policy_demo.py",
     ]
     for example in examples:
         module = load_example(example)
         base_dir = tmp_path / example.replace(".py", "")
         summary = module.run_demo(base_dir)
         assert (base_dir / "summary.json").exists()
-        assert summary["router_state"]["summary"]["healthy"] >= 1
+        if "router_state" in summary:
+            assert summary["router_state"]["summary"]["healthy"] >= 1
+        else:
+            assert summary["counts"]["allow"] >= 1

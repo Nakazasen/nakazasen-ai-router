@@ -247,6 +247,10 @@ router = create_router_from_env(
 
 SQLite store chỉ lưu current state của `provider + model + key_id`. Nó không lưu attempt log để tránh phình DB và giảm rủi ro lộ metadata.
 
+## Quota và capacity policy
+
+Xem [docs/quota_policy.vi.md](docs/quota_policy.vi.md) để dùng giới hạn provider/model/key, fallback sorting và throttle in-memory.
+
 ## Metrics snapshot
 
 Xem [docs/metrics.vi.md](docs/metrics.vi.md) và `scripts/router_metrics.py` để xuất JSON observability an toàn cho router/job queue.

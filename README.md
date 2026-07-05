@@ -254,6 +254,10 @@ py scripts/discover_models.py --provider gemini --key-file "D:\path\to\provider_
 
 A discovered model must pass live validation and be manually reviewed before being added to the runtime catalog.
 
+## Quota and capacity policies
+
+Use [docs/quota_policy.md](docs/quota_policy.md) for optional provider/model/key capacity limits, fallback sorting, and in-memory throttling.
+
 ## Metrics snapshots
 
 Use [docs/metrics.md](docs/metrics.md) and `scripts/router_metrics.py` for sanitized router/job queue observability JSON.

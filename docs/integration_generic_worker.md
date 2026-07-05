@@ -87,6 +87,14 @@ For persistent workers, see [job_queue.md](job_queue.md) for `SQLiteJobStore` en
 
 Collect safe operational snapshots with `collect_metrics(router, job_store).to_dict()`; see [metrics.md](metrics.md).
 
+Use quota checks before expensive calls; see [quota_policy.md](quota_policy.md).
+
+```python
+check = quota.reserve(provider, model, estimated_tokens=chunk.estimated_tokens)
+if check.decision != QuotaDecision.ALLOW:
+    jobs.mark_retry_later(job.job_id, retry_after_seconds=check.retry_after_seconds, error_type=check.reason)
+```
+
 ## Operational snapshot
 
 ```python
