@@ -2,7 +2,7 @@
 
 Vietnamese documentation: [README.vi.md](README.vi.md)
 
-Nakazasen AI Router is an embeddable Python library for routing AI requests across local and cloud providers. It is designed as a durable AI token pool/provider router for long-running workloads such as bulk chapter translation, content generation, summarization, and text analysis.
+Nakazasen AI Router is a general-purpose AI capacity layer for Python applications. It routes AI requests across local and cloud providers, manages provider/model/key health, and gives other repositories durable access to AI capacity without tying the core to any single domain.
 
 The default development and test path is mock-first, offline, and safe: unit tests do not call the internet and do not require real API keys.
 
@@ -17,7 +17,7 @@ The default development and test path is mock-first, offline, and safe: unit tes
 - Supports workload/capability based candidate scoring.
 - Provides budget guard and exponential retry backoff.
 - Provides a streaming API foundation with safe fallback.
-- Includes an offline translation worker demo.
+- Includes offline examples for summarization, JSON extraction, content generation, and translation as one long-context use case.
 
 ## Supported providers
 
@@ -223,15 +223,18 @@ async for chunk in router.astream(AIRequest(prompt="Translate chapter...")):
 
 Providers may implement `stream_generate` or `astream_generate` to provide native streaming chunks.
 
-## Offline translation worker demo
+## Offline examples
 
-The demo simulates a long-running chapter translation worker without network or API keys:
+Examples are mock-first and run without network or API keys:
 
 ```powershell
+py examples/summarization_batch_demo.py --base-dir .demo_summarization
+py examples/json_extraction_demo.py --base-dir .demo_json_extraction
+py examples/content_generation_demo.py --base-dir .demo_content_generation
 py examples/translation_worker_demo.py --offline-demo
 ```
 
-It creates sample input chapters, uses SQLite state, calls `route_outcome()`, writes translated outputs, and exports `summary.json`.
+Translation is intentionally only one example of a long-context workload. See [docs/use_cases.md](docs/use_cases.md), [docs/integration_generic_worker.md](docs/integration_generic_worker.md), and [docs/integration_translation_worker.md](docs/integration_translation_worker.md).
 
 ## Gemini model discovery and live smoke tests
 

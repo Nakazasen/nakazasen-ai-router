@@ -1,6 +1,6 @@
 # Nakazasen AI Router
 
-Nakazasen AI Router là một thư viện Python nhỏ gọn, ưu tiên bảo mật quyền riêng tư (privacy-aware) và ưu tiên sử dụng mô hình miễn phí trước (free-first) để điều phối cuộc gọi đến các nhà cung cấp dịch vụ trí tuệ nhân tạo (AI providers).
+Nakazasen AI Router là một lớp cung cấp năng lực AI đa nhiệm cho ứng dụng Python. Nó điều phối request AI qua nhiều provider local/cloud, quản lý sức khỏe provider/model/key và giúp repo khác dùng AI bền vững mà không buộc core vào một domain cụ thể.
 Thư viện được thiết kế theo triết lý giả lập trước (mock-first) để các hoạt động kiểm thử (test) mặc định không cần kết nối mạng và không yêu cầu mã khóa dịch vụ (API key) thật.
 
 ## Dùng để làm gì?
@@ -156,13 +156,16 @@ async for chunk in router.astream(AIRequest(prompt="Translate chapter...")):
     print(chunk.text, chunk.done)
 ```
 
-Repo có demo worker offline/mock-first để mô phỏng dịch nhiều chương, dùng SQLite state và `route_outcome()`:
+Repo có nhiều demo offline/mock-first cho nhiều domain. Dịch chương chỉ là một ví dụ workload context dài:
 
 ```powershell
+py examples/summarization_batch_demo.py --base-dir .demo_summarization
+py examples/json_extraction_demo.py --base-dir .demo_json_extraction
+py examples/content_generation_demo.py --base-dir .demo_content_generation
 py examples/translation_worker_demo.py --offline-demo
 ```
 
-Demo này không gọi API live và không cần API key thật.
+Các demo không gọi API live và không cần API key thật. Xem thêm `docs/use_cases.vi.md`, `docs/integration_generic_worker.vi.md` và `docs/integration_translation_worker.vi.md`.
 
 ## API nhúng cho job queue bền vững
 

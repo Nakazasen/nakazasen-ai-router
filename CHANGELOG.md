@@ -1,8 +1,23 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to `nakazasen-ai-router` will be documented in this file.
 
 This project follows pre-1.0 semantic versioning: public root exports are documented, but breaking changes may still happen before 1.0 and should be called out here.
+
+## 0.2.1 - Unreleased
+
+### Added
+
+- General-purpose use-case index docs in English and Vietnamese.
+- Generic worker integration recipes in English and Vietnamese.
+- Multi-domain offline examples for summarization, JSON extraction, and content generation.
+- Generic workload aliases such as `long_context`, `cheap_batch`, `structured_json`, `low_latency`, `premium_reasoning`, and `private_local`.
+- Positioning audit script and tests to prevent translation-only narrative drift.
+
+### Changed
+
+- README and architecture docs now state that translation is one use case, not the core domain.
+
 
 ## 0.2.0 - 2026-07-05
 

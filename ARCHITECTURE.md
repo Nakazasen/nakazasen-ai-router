@@ -39,11 +39,15 @@ Discovery lists provider models but does not automatically enable them in the ru
 
 Transient and quota failures use exponential backoff based on per-key/model failure streaks. Provider `Retry-After` values are treated as minimum cooldowns, while `backoff_max_seconds` caps runaway delays.
 
-## Streaming foundation and demo worker
+## Domain-neutral workload boundary
+
+`nakazasen-ai-router` is a general-purpose AI capacity layer. Core router modules do not own domain payload semantics such as chapters, tickets, documents, contracts, chats, logs, or agent tasks. Applications own job payloads, result storage, domain validation, and user/project metadata. The router owns provider/model/key selection, state, cooldowns, outcomes, budget decisions, and safe operational snapshots.
+
+## Streaming foundation and examples
 
 `AIStreamChunk`, `AIRouter.stream(...)`, and `AIRouter.astream(...)` provide a streaming API foundation. Providers may implement `stream_generate` or `astream_generate`; otherwise the router falls back to a single sanitized full-result chunk.
 
-`examples/translation_worker_demo.py` is an offline/mock-first long-running translation worker demo. It processes chapter files, uses `route_outcome()`, persists SQLite state, writes translated outputs, and exports a dashboard-safe summary without requiring API keys or live network calls.
+The `examples/` directory is mock-first and demonstrates multiple domains, including summarization, JSON extraction, content generation, and translation as one long-context workload.
 
 ## Health and state
 
