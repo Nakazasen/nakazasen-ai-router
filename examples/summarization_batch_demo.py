@@ -15,7 +15,7 @@ class OfflineSummarizer(ProviderBase):
         summary = " ".join(words[:12])
         if len(words) > 12:
             summary += " ..."
-        return AIResult(text=summary, provider_name=self.name, latency_ms=0)
+        return AIResult(text=summary, provider_name=self.name)
 
 
 def run_demo(base_dir: Path) -> dict:

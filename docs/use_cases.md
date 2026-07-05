@@ -1,4 +1,4 @@
-﻿# General-purpose use cases
+# General-purpose use cases
 
 `nakazasen-ai-router` is a general-purpose AI capacity layer for Python applications. It is not tied to translation, chatbots, agents, or any single domain. The router owns provider/model/key selection, cooldowns, budget checks, retries, outcomes, and safe operational state. Your application owns payload semantics and result storage.
 
@@ -39,6 +39,8 @@ AIRequest(
 4. Reschedule `retry_later` outcomes in your app queue.
 5. Store final results in your app database.
 6. Use `export_state()` only for safe operational dashboards.
+
+For long payloads, see [segmentation.md](segmentation.md) for domain-neutral chunking and merge helpers.
 
 ## Safety principles
 

@@ -19,6 +19,7 @@ from .core import (
     RouterError,
     RouterPolicy,
 )
+from .segmentation import ChunkingPolicy, WorkChunk, estimate_tokens, merge_chunk_texts, segment_text
 from .state import JsonStateStore, KeyModelState, MemoryStateStore
 from .storage_sqlite import SQLiteStateStore
 
@@ -40,6 +41,11 @@ __all__ = [
     "ProviderTimeoutError",
     "RouterError",
     "RouterPolicy",
+    "ChunkingPolicy",
+    "WorkChunk",
+    "estimate_tokens",
+    "segment_text",
+    "merge_chunk_texts",
     "JsonStateStore",
     "KeyModelState",
     "MemoryStateStore",

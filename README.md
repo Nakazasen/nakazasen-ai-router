@@ -254,6 +254,10 @@ py scripts/discover_models.py --provider gemini --key-file "D:\path\to\provider_
 
 A discovered model must pass live validation and be manually reviewed before being added to the runtime catalog.
 
+## Segmentation primitives
+
+Use [docs/segmentation.md](docs/segmentation.md) for domain-neutral chunking/merge helpers before `route_outcome()`.
+
 ## Live provider conformance
 
 See [docs/live_conformance.md](docs/live_conformance.md) for opt-in sanitized live provider checks.

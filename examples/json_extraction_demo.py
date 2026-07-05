@@ -12,7 +12,7 @@ class OfflineJsonExtractor(ProviderBase):
 
     def generate(self, request: AIRequest, candidate=None) -> AIResult:
         payload = {"title": "Sample", "category": "demo", "word_count": len(request.prompt.split())}
-        return AIResult(text=json.dumps(payload), provider_name=self.name, latency_ms=0)
+        return AIResult(text=json.dumps(payload), provider_name=self.name)
 
 
 def run_demo(base_dir: Path) -> dict:

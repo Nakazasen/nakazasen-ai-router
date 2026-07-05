@@ -12,7 +12,7 @@ class OfflineContentGenerator(ProviderBase):
 
     def generate(self, request: AIRequest, candidate=None) -> AIResult:
         topic = request.metadata.get("topic", "generic topic")
-        return AIResult(text=f"Draft content for {topic}: reliable AI capacity for every repository.", provider_name=self.name, latency_ms=0)
+        return AIResult(text=f"Draft content for {topic}: reliable AI capacity for every repository.", provider_name=self.name)
 
 
 def run_demo(base_dir: Path) -> dict:

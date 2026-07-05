@@ -1,4 +1,4 @@
-﻿import importlib.util
+import importlib.util
 from pathlib import Path
 
 
@@ -16,6 +16,7 @@ def test_multi_domain_examples_run_offline(tmp_path):
         "summarization_batch_demo.py",
         "json_extraction_demo.py",
         "content_generation_demo.py",
+        "segmented_batch_demo.py",
     ]
     for example in examples:
         module = load_example(example)

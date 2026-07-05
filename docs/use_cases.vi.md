@@ -1,4 +1,4 @@
-﻿# Các use case đa nhiệm
+# Các use case đa nhiệm
 
 `nakazasen-ai-router` là một lớp cung cấp năng lực AI đa nhiệm cho ứng dụng Python. Nó không bị buộc vào dịch thuật, chatbot, agent hay một domain riêng nào. Router chịu trách nhiệm chọn provider/model/key, cooldown, budget check, retry, outcome và state vận hành an toàn. Ứng dụng của bạn chịu trách nhiệm ngữ nghĩa payload và nơi lưu kết quả.
 
@@ -39,6 +39,8 @@ AIRequest(
 4. Reschedule outcome `retry_later` trong queue của app.
 5. Lưu kết quả cuối trong database của app.
 6. Dùng `export_state()` chỉ cho dashboard vận hành an toàn.
+
+Với payload dài, xem [segmentation.vi.md](segmentation.vi.md) để dùng helper chia/gộp chunk trung lập domain.
 
 ## Nguyên tắc an toàn
 

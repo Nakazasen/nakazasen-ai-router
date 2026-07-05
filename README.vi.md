@@ -247,6 +247,10 @@ router = create_router_from_env(
 
 SQLite store chỉ lưu current state của `provider + model + key_id`. Nó không lưu attempt log để tránh phình DB và giảm rủi ro lộ metadata.
 
+## Primitive segmentation
+
+Xem [docs/segmentation.vi.md](docs/segmentation.vi.md) để dùng helper chia/gộp chunk trung lập domain trước `route_outcome()`.
+
 ## Live provider conformance
 
 Xem [docs/live_conformance.vi.md](docs/live_conformance.vi.md) để chạy kiểm chứng provider thật opt-in và đã sanitize.

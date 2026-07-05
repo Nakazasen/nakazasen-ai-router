@@ -1,4 +1,4 @@
-﻿import nakazasen_ai_router as nar
+import nakazasen_ai_router as nar
 
 
 EXPECTED_PUBLIC_NAMES = {
@@ -24,6 +24,11 @@ EXPECTED_PUBLIC_NAMES = {
     "create_router_from_env",
     "create_live_free_first_router_from_env",
     "ModelCapability",
+    "ChunkingPolicy",
+    "WorkChunk",
+    "estimate_tokens",
+    "segment_text",
+    "merge_chunk_texts",
     "capability_for",
     "score_candidate_for_task",
 }
@@ -49,6 +54,9 @@ def test_public_api_basic_construction_smoke():
 def test_public_api_capability_helper_smoke():
     capability = nar.capability_for("gemini", "gemini-2.5-flash")
     score = nar.score_candidate_for_task(capability, "translation_longform")
+    chunks = nar.segment_text("hello world", nar.ChunkingPolicy(max_estimated_tokens=100))
 
     assert isinstance(capability, nar.ModelCapability)
     assert score > 0
+    assert isinstance(chunks[0], nar.WorkChunk)
+    assert nar.merge_chunk_texts(["a", "b"]) == "a\nb"
