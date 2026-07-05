@@ -1,5 +1,9 @@
 # Nakazasen AI Router
 
+## Provider keys and updates
+
+See [docs/provider_keys.md](docs/provider_keys.md) for API key setup, [examples/key_setup_static/index.html](examples/key_setup_static/index.html) for a local-only key file helper, and [docs/install_update.md](docs/install_update.md) for update/uninstall commands.
+
 ## Path hygiene
 
 See [docs/path_hygiene.md](docs/path_hygiene.md) for the local path/key-file guard used to keep the repository portable.

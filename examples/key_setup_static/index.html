@@ -1,0 +1,30 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Local-only provider key file generator for Nakazasen AI Router." />
+  <title>Nakazasen AI Router Key Setup</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="card">
+    <p class="eyebrow">Local-only helper</p>
+    <h1>Provider Key Setup</h1>
+    <p class="warning">Use this page only as a local file. Do not host it publicly. The generated key file must be stored outside this repository.</p>
+    <form id="keyForm">
+      <label>Gemini API key <input id="gemini" type="password" autocomplete="off" /></label>
+      <label>Groq API key <input id="groq" type="password" autocomplete="off" /></label>
+      <label>OpenRouter API key <input id="openrouter" type="password" autocomplete="off" /></label>
+      <button type="button" id="generateButton">Generate key file text</button>
+    </form>
+    <textarea id="output" rows="8" readonly aria-label="Generated key file text"></textarea>
+    <div class="actions">
+      <button type="button" id="copyButton">Copy</button>
+      <button type="button" id="downloadButton">Download provider_keys.env</button>
+    </div>
+    <p id="status" aria-live="polite"></p>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,14 +1,14 @@
-﻿# Path hygiene
+# Path hygiene
 
 This repo must stay portable. Do not commit machine-specific paths, API key file names, local install smoke folders, or generated local artifacts.
 
 Blocked examples include:
 
-- `D:\Sandbox\...`
-- `C:\Users\...`
-- `file:///D:/...`
-- `API Key.txt`
-- `.tmp_install_smoke`
+- `<drive>:\local-project-folder\...`
+- `<drive>:\Users\<name>\...`
+- `file:///<drive>:/...`
+- a private key filename such as a personal API-key text file
+- temporary install smoke folders
 
 Allowed documentation placeholders include:
 

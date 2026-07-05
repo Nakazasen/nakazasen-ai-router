@@ -1,14 +1,14 @@
-﻿# Vệ sinh đường dẫn
+# Vệ sinh đường dẫn
 
 Repo này phải giữ tính portable. Không commit đường dẫn riêng của máy, tên file API key thật, thư mục install smoke local hoặc artifact local sinh ra khi chạy thử.
 
 Ví dụ bị chặn:
 
-- `D:\Sandbox\...`
-- `C:\Users\...`
-- `file:///D:/...`
-- `API Key.txt`
-- `.tmp_install_smoke`
+- `<drive>:\local-project-folder\...`
+- `<drive>:\Users\<name>\...`
+- `file:///<drive>:/...`
+- a private key filename such as a personal API-key text file
+- temporary install smoke folders
 
 Placeholder docs được phép:
 

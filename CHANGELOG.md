@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add provider key onboarding docs, local-only key setup helpers, and install/update guidance.
 - Add local path leak guard for machine-specific paths and key file names.
 
 All notable changes to `nakazasen-ai-router` will be documented in this file.

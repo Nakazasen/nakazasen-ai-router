@@ -1,5 +1,9 @@
 # Nakazasen AI Router
 
+## API key và cập nhật
+
+Xem [docs/provider_keys.vi.md](docs/provider_keys.vi.md) để setup API key, [examples/key_setup_static/index.html](examples/key_setup_static/index.html) cho helper local-only tạo key file, và [docs/install_update.vi.md](docs/install_update.vi.md) cho lệnh update/gỡ cài đặt.
+
 ## Vệ sinh đường dẫn
 
 Xem [docs/path_hygiene.vi.md](docs/path_hygiene.vi.md) để biết guard chống commit nhầm path local hoặc tên file key thật.
