@@ -1,79 +1,44 @@
-# Changelog
+﻿# Changelog
 
-## Gate 14.6 - Vietnamese documentation and docs audit
+All notable changes to `nakazasen-ai-router` will be documented in this file.
 
-- Added Vietnamese documentation pages for README, quickstart, security/privacy, roadmap, and operation rules.
-- Added documentation quality audit to guard against mojibake, placeholders, raw key examples, and missing Vietnamese docs links.
+This project follows pre-1.0 semantic versioning: public root exports are documented, but breaking changes may still happen before 1.0 and should be called out here.
 
-## Gate 14.5 - Mojibake cleanup
+## 0.2.0 - 2026-07-05
 
-- Rewrote public documentation in clean UTF-8.
-- Added repository text encoding audit script.
-- Cleaned provider registry notes that contained broken characters.
+### Added
 
-## Gate 14 - Health scoreboard, aliases, and privacy design
+- Multi-key provider routing with per `provider + model + key_id` state.
+- `route_outcome()` and `aroute_outcome()` for durable job queues.
+- Safe admin/dashboard state export through `export_state()`.
+- JSON state store and SQLite state store.
+- Native async routing path with optional `httpx` async transport extra.
+- Task/capability based routing with `ModelCapability` and `RouterPolicy.task_type`.
+- Budget guard using `estimated_input_tokens` and `estimated_output_tokens` metadata.
+- Exponential retry/backoff controls with `Retry-After` minimum handling.
+- Streaming foundation with `AIStreamChunk`, `stream()`, and `astream()`.
+- Offline translation worker demo in `examples/translation_worker_demo.py`.
+- Public API contract documentation in `docs/public_api.md`.
+- Public API import tests.
+- Package metadata suitable for sdist/wheel builds.
 
-- Added safe health scoreboard and JSON cache support for live smoke.
-- Added last-known-good model lookup and model ranking from health metadata.
-- Added provider/model alias parser for `provider:model` references.
-- Added AIOS privacy policy adapter design without AIOS_habbit integration.
+### Changed
 
-## Gate 13 - AI gateway research
+- Provider routing now considers candidate health, key/model cooldowns, task capability score, and policy priority.
+- Async APIs remain additive while sync APIs stay stable.
+- README English documentation now matches the Vietnamese feature coverage.
 
-- Compared LiteLLM, Portkey Gateway, OpenRouter, Vercel AI SDK/Gateway, and health-routing patterns.
-- Selected small features worth copying conceptually without large dependencies.
+### Security
 
-## Gate 12 - Additional Gemini models
+- State stores, attempts, and dashboard exports avoid raw API keys, Authorization headers, prompts, and raw provider responses.
+- Live provider calls remain explicit opt-in.
+- Unit tests remain offline by default.
 
-- Enabled `gemini-flash-lite-latest`, `gemini-3.1-flash-lite-preview`, and `gemma-4-31b-it` after live PASS.
+## 0.1.0 - Initial skeleton
 
-## Gate 11 - Gemini discovery
+### Added
 
-- Added opt-in Gemini model discovery.
-- Kept discovered models separate from enabled runtime models.
-
-## Gate 10 - Additional Gemini candidates
-
-- Tested extra Gemini candidates.
-- Added only candidates that live PASS.
-
-## Gate 9 - Gemini model catalog
-
-- Added and verified a broader Gemini model catalog.
-- Kept unit tests network-free.
-
-## Gate 8 - Gemini support
-
-- Added Gemini through the OpenAI-compatible endpoint.
-- Added safe live smoke support for Gemini.
-
-## Gate 7 - Live strategy and Groq debugging
-
-- Improved live provider order and `live_free_first` behavior.
-- Investigated Groq failures safely without leaking keys.
-
-## Gate 6 - v0.1.0 internal release
-
-- Verified live provider calls with real keys outside the repository.
-- Prepared internal release state and tag.
-
-## Gate 5 - Optional network transport
-
-- Added optional real HTTP transport and live smoke script.
-- Kept default tests offline.
-
-## Gate 4 - Registry and environment config
-
-- Added provider registry and environment-based router creation.
-
-## Gate 3 - OpenAI-compatible provider
-
-- Added mock-first OpenAI-compatible adapter.
-
-## Gate 2 - Core router intelligence
-
-- Added router policy, provider health, and fallback behavior.
-
-## Gate 0 - Foundation
-
-- Created project foundation, packaging metadata, tests, and initial documentation.
+- Initial provider router skeleton.
+- OpenAI-compatible provider adapter foundation.
+- Provider registry and mock-first tests.
+- Gemini catalog/discovery and live smoke scripts.
