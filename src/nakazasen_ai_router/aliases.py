@@ -7,12 +7,10 @@ from dataclasses import dataclass
 
 GEMINI_ALIASES = {
     "default": "gemini-3.5-flash",
-    "fast": "gemini-3.5-flash",
-    "latest": "gemini-flash-latest",
-    "lite": "gemini-flash-lite-latest",
-    "cheap": "gemini-flash-lite-latest",
-    "robotics": "gemini-robotics-er-1.6-preview",
-    "gemma": "gemma-4-31b-it",
+    "fast": "gemini-3.6-flash",
+    "latest": "gemini-3.6-flash",
+    "lite": "gemini-3.5-flash-lite",
+    "cheap": "gemini-3.5-flash-lite",
 }
 
 MODEL_ALIASES = {"gemini": GEMINI_ALIASES}

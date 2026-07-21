@@ -28,6 +28,11 @@ class AsyncHTTPClient(Protocol):
         """Send an async POST request and return a response-like object."""
 
 
+class HTTPClient(Protocol):
+    def get(self, url: str, *, headers: Mapping[str, str] | None = None, timeout: float) -> Any:
+        """Send a GET request and return a response-like object."""
+
+
 class HttpxAsyncHTTPClient:
     """Optional httpx-based async HTTP client.
 
@@ -58,6 +63,18 @@ class UrllibHTTPClient:
     def post(self, url: str, *, headers: Mapping[str, str], json: Mapping[str, Any], timeout: float) -> HTTPResponse:
         body = json_module.dumps(json).encode("utf-8")
         request = urllib.request.Request(url, data=body, headers=dict(headers), method="POST")
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                text = response.read().decode("utf-8", errors="replace")
+                return HTTPResponse(status_code=int(response.status), headers=dict(response.headers), text=text)
+        except urllib.error.HTTPError as exc:
+            text = exc.read().decode("utf-8", errors="replace") if hasattr(exc, "read") else ""
+            return HTTPResponse(status_code=int(exc.code), headers=dict(exc.headers), text=text)
+        except (TimeoutError, socket.timeout) as exc:
+            raise TimeoutError("HTTP request timed out") from exc
+
+    def get(self, url: str, *, headers: Mapping[str, str] | None = None, timeout: float) -> HTTPResponse:
+        request = urllib.request.Request(url, headers=dict(headers or {}), method="GET")
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 text = response.read().decode("utf-8", errors="replace")

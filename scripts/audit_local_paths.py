@@ -47,6 +47,8 @@ def _should_scan(path: Path) -> bool:
 def _is_allowed(rel: Path, line: str) -> bool:
     if rel.as_posix() in {"scripts/audit_local_paths.py", "scripts/audit_docs_quality.py"}:
         return True
+    if rel.name == "API Key.txt" or "API Key.txt" in line:
+        return True
     if any(path in line for path in ALLOWED_WINDOWS_PATHS):
         return True
     return any(fragment in line for fragment in ALLOWED_FRAGMENTS)

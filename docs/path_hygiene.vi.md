@@ -1,13 +1,14 @@
 # Vệ sinh đường dẫn
 
-Repo này phải giữ tính portable. Không commit đường dẫn riêng của máy, tên file API key thật, thư mục install smoke local hoặc artifact local sinh ra khi chạy thử.
+Repo phải giữ tính portable. Không commit đường dẫn riêng của máy, artifact local hoặc API key.
+
+`API Key.txt` ở root repo là ngoại lệ có chủ ý cho live test local: nó bị Git ignore bằng rule `/API Key.txt`, không được force-add hoặc copy vào package/release. Không ghi path tuyệt đối tới file đó trong source hoặc tài liệu.
 
 Ví dụ bị chặn:
 
 - `<drive>:\local-project-folder\...`
 - `<drive>:\Users\<name>\...`
 - `file:///<drive>:/...`
-- a private key filename such as a personal API-key text file
 - temporary install smoke folders
 
 Placeholder docs được phép:
@@ -15,8 +16,6 @@ Placeholder docs được phép:
 - `D:\path\to\provider_keys.txt`
 - `D:\duong_dan_ngoai\provider_keys.txt`
 - `path\to\provider_keys.txt`
-
-Quy ước output local được phép gồm các thư mục demo `.demo_*` và `local_cases/` cho report opt-in. Các output này không nên commit trừ khi được ghi rõ là sample data an toàn.
 
 Chạy:
 

@@ -21,14 +21,17 @@ class ModelCapability:
 
 
 CAPABILITY_CATALOG: dict[tuple[str, str], ModelCapability] = {
+    ("gemini", "gemini-3.6-flash"): ModelCapability("gemini", "gemini-3.6-flash", 1_000_000, 65_536, "standard", "fast", "strong", True, True, ("long_context", "translation_longform", "analysis", "summarization", "premium_reasoning")),
     ("gemini", "gemini-3.5-flash"): ModelCapability("gemini", "gemini-3.5-flash", 1_000_000, 65_536, "standard", "fast", "strong", True, True, ("long_context", "translation_longform", "analysis", "summarization", "premium_reasoning")),
-    ("gemini", "gemini-flash-latest"): ModelCapability("gemini", "gemini-flash-latest", 1_000_000, 65_536, "standard", "fast", "strong", True, True, ("long_context", "translation_longform", "analysis", "summarization", "premium_reasoning")),
-    ("gemini", "gemini-flash-lite-latest"): ModelCapability("gemini", "gemini-flash-lite-latest", 1_000_000, 65_536, "cheap", "fast", "good", True, True, ("long_context", "translation_longform", "cheap_batch", "cheap_generation", "summarization")),
+    ("gemini", "gemini-3.5-flash-lite"): ModelCapability("gemini", "gemini-3.5-flash-lite", 1_000_000, 65_536, "cheap", "fast", "good", True, True, ("long_context", "translation_longform", "cheap_batch", "cheap_generation", "summarization")),
+    ("gemini", "gemini-3.1-flash-lite"): ModelCapability("gemini", "gemini-3.1-flash-lite", 1_000_000, 65_536, "cheap", "fast", "good", True, True, ("long_context", "translation_longform", "cheap_batch", "cheap_generation", "summarization")),
     ("gemini", "gemini-2.5-flash"): ModelCapability("gemini", "gemini-2.5-flash", 1_000_000, 65_536, "standard", "fast", "strong", True, True, ("long_context", "translation_longform", "analysis", "summarization", "premium_reasoning")),
     ("gemini", "gemini-2.5-flash-lite"): ModelCapability("gemini", "gemini-2.5-flash-lite", 1_000_000, 65_536, "cheap", "fast", "good", True, True, ("long_context", "translation_longform", "cheap_batch", "cheap_generation")),
+    ("gemini", "gemini-2.5-pro"): ModelCapability("gemini", "gemini-2.5-pro", 1_000_000, 65_536, "premium", "medium", "strong", True, True, ("long_context", "translation_longform", "analysis", "summarization", "premium_reasoning")),
     ("openrouter", "meta-llama/llama-3.3-70b-instruct:free"): ModelCapability("openrouter", "meta-llama/llama-3.3-70b-instruct:free", 131_072, 8_192, "free", "medium", "strong", True, False, ("cheap_batch", "cheap_generation", "analysis", "summarization")),
     ("groq", "llama-3.1-8b-instant"): ModelCapability("groq", "llama-3.1-8b-instant", 131_072, 8_192, "cheap", "fast", "good", True, False, ("cheap_batch", "cheap_generation", "summarization")),
-    ("deepseek", "deepseek-chat"): ModelCapability("deepseek", "deepseek-chat", 64_000, 8_000, "cheap", "medium", "good", True, True, ("analysis", "cheap_batch", "cheap_generation", "summarization")),
+    ("deepseek", "deepseek-v4-flash"): ModelCapability("deepseek", "deepseek-v4-flash", cost_tier="cheap", speed_tier="fast", quality_tier="good", supports_streaming=True, supports_json_mode=True, recommended_tasks=("analysis", "cheap_batch", "cheap_generation", "summarization")),
+    ("deepseek", "deepseek-v4-pro"): ModelCapability("deepseek", "deepseek-v4-pro", cost_tier="standard", speed_tier="medium", quality_tier="strong", supports_streaming=True, supports_json_mode=True, recommended_tasks=("analysis", "premium_reasoning", "summarization")),
     ("nvidia_nim", "meta/llama-3.1-8b-instruct"): ModelCapability("nvidia_nim", "meta/llama-3.1-8b-instruct", 131_072, 8_192, "standard", "fast", "good", True, False, ("summarization", "cheap_batch", "cheap_generation")),
     ("chatanywhere", "gpt-4o-mini"): ModelCapability("chatanywhere", "gpt-4o-mini", 128_000, 16_384, "standard", "fast", "good", True, True, ("long_context", "translation_longform", "summarization", "structured_json", "json_structured")),
     ("mistral", "mistral-small-latest"): ModelCapability("mistral", "mistral-small-latest", 128_000, 8_192, "standard", "fast", "good", True, True, ("summarization", "analysis", "structured_json", "json_structured")),

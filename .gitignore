@@ -6,3 +6,10 @@ venv/
 build/
 dist/
 *.egg-info/
+
+# Local credentials and environment overrides. Never commit these files.
+/API Key.txt
+.env
+.env.*
+!.env.example
+*.local

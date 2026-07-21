@@ -1,92 +1,39 @@
-# Architecture
+﻿# Architecture
 
 Nakazasen AI Router is a library-first Python router for selecting AI providers and models safely.
 
-## Core
+## Core and provider registry
 
-The core package exposes request/result types and a router that tries provider candidates in policy order.
-The router is designed to be mock-first: unit tests do not call the internet.
+`core.py` exposes request/result types and a router that tries provider candidates in policy order. `registry.py` defines Gemini, OpenRouter, Groq, DeepSeek, NVIDIA NIM, ChatAnyWhere, Mistral, and local OpenAI-compatible profiles with safe metadata: base URLs, key-variable names, static fallback models, and notes.
 
-## Provider registry
+The project is mock-first: tests do not call the internet unless a test explicitly injects a mock transport.
 
-`registry.py` defines provider profiles such as Gemini, OpenRouter, Groq, DeepSeek, NVIDIA NIM, ChatAnyWhere, Mistral, and local OpenAI-compatible servers.
-Each profile stores safe metadata: provider id, base URL, API key environment variable, default models, and notes.
+## Configuration and keys
 
-## OpenAI-compatible adapter
+`create_router_from_env()` accepts an explicit `env` mapping or reads `os.environ`. This lets a host application source keys from its own secret manager. Cloud providers require a key; local OpenAI-compatible providers may run keyless against a local URL. Singular and plural key environment variables are supported, and no raw key is included in router attempts or durable state.
 
-`providers/openai_compatible.py` adapts OpenAI-style chat completions endpoints.
-Network access is dependency-injected through an HTTP client so tests can use mocks.
+## OpenAI-compatible adapter and transport
 
-## Optional transport
+`providers/openai_compatible.py` adapts chat completion endpoints. Network access is dependency-injected; `UrllibHTTPClient` is created only when `enable_network=True`. Optional async networking uses the `async` extra.
 
-Real HTTP transport is optional and only used when callers enable network access.
-The default test path does not require provider keys.
+## Startup model catalog refresh
 
-## Discovery
+`discovery.py` provides explicit provider model discovery. Gemini uses its native models endpoint with `X-Goog-Api-Key`; the remaining cloud providers use OpenAI-compatible `GET /models`. `create_router_from_env(..., enable_network=True, refresh_models_on_startup=True)` merges discovered chat-capable IDs before static fallback models for that process-local provider instance. Discovery is disabled by default, does not persist changes to source or the registry, and failures retain static defaults without blocking startup.
 
-`discovery.py` supports opt-in provider model discovery, currently focused on Gemini.
-Discovery lists provider models but does not automatically enable them in the runtime catalog.
+## Capability, health, and state
 
-## Capability catalog and task based routing
+`capabilities.py` defines safe capability metadata. `RouterPolicy.task_type` and request metadata guide candidate scoring; unknown discovered models receive safe defaults.
 
-`capabilities.py` defines safe model capability metadata such as context window, output limit, cost tier, speed tier, quality tier, JSON support, streaming support, and recommended task types.
+The router records health by provider/model/key candidate. Quota and transient errors use cooldown/backoff. The default store is in-memory; callers may select JSON or SQLite state without persisting prompts, raw API keys, Authorization headers, raw provider responses, or evidence.
 
-`RouterPolicy.task_type` and request metadata `task_type` let callers describe workload intent, for example `translation_longform` or `cheap_generation`. The router scores candidates with the capability catalog before falling back to priority order. Unknown models receive safe default capability metadata and do not fail routing.
+## Routing contract
 
-## Budget guard and retry backoff
+`AIRouter.route()` returns an `AIResult` or raises `RouterError`. `route_outcome()` returns non-throwing `success`, `retry_later`, or `failed` outcomes for durable jobs. Sync, async, streaming fallback, state export, quota controls, and capability scoring are supported.
 
-`RouterPolicy.max_estimated_input_tokens` and `RouterPolicy.max_estimated_output_tokens` let applications fail closed before any provider call when a job estimate exceeds configured limits. `route_outcome()` reports this as `status="failed"` and `error_type="budget_exceeded"`.
+## Local live testing
 
-Transient and quota failures use exponential backoff based on per-key/model failure streaks. Provider `Retry-After` values are treated as minimum cooldowns, while `backoff_max_seconds` caps runaway delays.
-
-## Domain-neutral workload boundary
-
-`nakazasen-ai-router` is a general-purpose AI capacity layer. Core router modules do not own domain payload semantics such as chapters, tickets, documents, contracts, chats, logs, or agent tasks. Applications own job payloads, result storage, domain validation, and user/project metadata. The router owns provider/model/key selection, state, cooldowns, outcomes, budget decisions, and safe operational snapshots.
-
-## Streaming foundation and examples
-
-`AIStreamChunk`, `AIRouter.stream(...)`, and `AIRouter.astream(...)` provide a streaming API foundation. Providers may implement `stream_generate` or `astream_generate`; otherwise the router falls back to a single sanitized full-result chunk.
-
-The `examples/` directory is mock-first and demonstrates multiple domains, including summarization, JSON extraction, content generation, and translation as one long-context workload.
-
-## Health and state
-
-`scoreboard.py` stores safe provider/model health metadata for live smoke and ranking helpers:
-
-- success count
-- failure count
-- failure streak
-- last status
-- last error type
-- latency
-- timestamps
-- cooldown time
-
-`state.py` stores runtime routing state for provider/model/key candidates. The default store is in-memory. Callers can pass `state_path` to use a JSON-backed store for single-process durable cooldowns across restarts.
-
-`storage_sqlite.py` provides `SQLiteStateStore` for multiple local workers/processes sharing the same router state. It uses SQLite WAL/busy-timeout settings and stores only current operational state, not prompts, raw API keys, Authorization headers, raw responses, or attempt logs.
-
-The router records per-key/model success and failure state so one exhausted key does not automatically block every other key for the same provider. State files must not store prompts, API keys, Authorization headers, raw responses, or evidence.
-
-## Route outcome and operations contract
-
-`AIRouter.route(...)` remains the legacy success-or-raise API. `AIRouter.route_outcome(...)` is the non-throwing integration API for durable job queues. It returns `success`, `retry_later`, or `failed` plus safe structured attempts and `retry_after_seconds` when the caller should persist a job and resume later.
-
-`AIRouter.aroute(...)` and `AIRouter.aroute_outcome(...)` provide async-friendly entry points. Providers with `agenerate(...)` are called through the native async path; sync-only providers fall back to a worker thread. The OpenAI-compatible adapter supports optional native async HTTP via injected async clients or the `nakazasen-ai-router[async]` extra.
-
-`AIRouter.export_state(...)` returns a dashboard-safe snapshot with `summary` and `candidates`, suitable for app-level admin panels.
-
-## Alias registry
-
-`aliases.py` parses `provider:model` references and resolves friendly aliases such as `gemini:fast`, `gemini:lite`, and `gemini:gemma`.
+The repository-local `API Key.txt` file is ignored by the exact `/API Key.txt` Git rule. `scripts/live_smoke.py` and `scripts/discover_models.py` use it only during an explicit live command and sanitize their output. It is a developer-local convention, not part of the library runtime API.
 
 ## Privacy boundary
 
-AIOS_habbit integration is not implemented yet.
-The design is that AIOS assigns privacy labels and sanitizes prompts before calling the router.
-The router will enforce metadata-based policy and must fail closed for unknown or confidential content.
-
-## No network by default
-
-Network calls require explicit opt-in through live scripts or router creation options.
-Unit tests stay offline.
+The router is a general capacity layer. Applications own payload storage, domain validation, privacy classification, and secret management. The router owns provider/model/key selection, cooldowns, outcomes, and safe operational snapshots.

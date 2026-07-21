@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## 0.2.3 - 2026-07-22
+
+### Added
+
+- Opt-in startup provider-model refresh for Gemini and OpenAI-compatible `GET /models` catalogs.
+- Safe process-local merge of discovered chat models before static fallback models.
+- Repository-local ignored `API Key.txt` default for explicit live smoke and discovery scripts.
+- Host-application API key injection guidance using environment variables, private `env` mappings, and secret managers.
+
+### Changed
+
+- Gemini and DeepSeek registry defaults, aliases, capability metadata, and regression tests now use current supported model identifiers.
+- Gemini catalog discovery sends the key in `X-Goog-Api-Key` request headers instead of query parameters.
+
+### Security
+
+- Added exact Git ignore protection for `/API Key.txt`, plus key-file and discovery regression coverage.
+
 ## 0.2.2 - 2026-07-05
 
 - Add provider key onboarding docs, local-only key setup helpers, and install/update guidance.

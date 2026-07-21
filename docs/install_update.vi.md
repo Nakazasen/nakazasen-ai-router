@@ -3,22 +3,22 @@
 ## Cài bản release cố định
 
 ```powershell
-py -m pip install "nakazasen-ai-router @ git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.2"
+py -m pip install "nakazasen-ai-router @ git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.3"
 ```
 
-## Cập nhật lên tag mới
+## Cập nhật lên 0.2.3
 
-Để refresh tag stable hiện tại hoặc chuyển từ `v0.2.1` lên `v0.2.2`:
+Các release tag trước là `v0.2.1` và `v0.2.2`.
 
 ```powershell
-py -m pip install --upgrade --force-reinstall "nakazasen-ai-router @ git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.2"
+py -m pip install --upgrade --force-reinstall "nakazasen-ai-router @ git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.3"
 ```
 
 ## Gỡ rồi cài lại
 
 ```powershell
 py -m pip uninstall nakazasen-ai-router
-py -m pip install "nakazasen-ai-router @ git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.2"
+py -m pip install "nakazasen-ai-router @ git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.3"
 ```
 
 ## Kiểm tra version đang cài
@@ -27,4 +27,4 @@ py -m pip install "nakazasen-ai-router @ git+https://github.com/Nakazasen/nakaza
 py -c "import importlib.metadata as m; print(m.version('nakazasen-ai-router'))"
 ```
 
-Key file và SQLite state local không bị pip uninstall xóa nếu bạn lưu chúng ngoài Python package.
+Key file và SQLite state local nằm ngoài Python package. `API Key.txt` là quy ước phát triển local đã được ignore, không bao giờ nằm trong package release.

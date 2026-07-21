@@ -1,4 +1,4 @@
-﻿import subprocess
+import subprocess
 import sys
 from pathlib import Path
 
@@ -11,7 +11,7 @@ def test_provider_key_docs_and_template_are_safe():
         assert (DOCS / name).exists()
     text = (DOCS / "provider_keys.md").read_text(encoding="utf-8-sig")
     assert "never ships API keys" in text
-    for provider in ["Gemini", "Groq", "OpenRouter"]:
+    for provider in ["Gemini", "Groq", "OpenRouter", "DeepSeek"]:
         assert provider in text
     template = (DOCS / "provider_keys.example.env").read_text(encoding="utf-8-sig")
     assert "GEMINI_API_KEY=" in template
@@ -37,9 +37,10 @@ def test_static_key_setup_is_local_only():
     assert "https://" not in lowered
 
 
-def test_install_update_docs_exist():
+def test_install_update_docs_reference_current_and_previous_releases():
     for name in ["install_update.md", "install_update.vi.md"]:
         text = (DOCS / name).read_text(encoding="utf-8-sig")
         assert "v0.2.1" in text
         assert "v0.2.2" in text
+        assert "v0.2.3" in text
         assert "pip uninstall" in text

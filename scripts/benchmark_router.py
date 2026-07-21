@@ -51,7 +51,7 @@ class MockDiscoveryClient:
         self.pages = pages
         self.index = 0
 
-    def get(self, url: str, timeout: float) -> MockHTTPResponse:
+    def get(self, url: str, *, headers: Mapping[str, str] | None = None, timeout: float) -> MockHTTPResponse:
         payload = self.pages[min(self.index, len(self.pages) - 1)]
         self.index += 1
         return MockHTTPResponse(payload)

@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from collections.abc import Mapping, Sequence
 from typing import Any
 
 from .core import AIRouter, RouterPolicy
+from .discovery import discover_provider_models
 from .http import HttpxAsyncHTTPClient, UrllibHTTPClient
 from .providers import OpenAICompatibleProvider
 from .registry import PROVIDER_REGISTRY, ProviderProfile
@@ -15,6 +17,7 @@ from .state import JsonStateStore
 from .storage_sqlite import SQLiteStateStore
 
 LIVE_FREE_FIRST_ORDER = ("gemini", "deepseek", "nvidia_nim", "chatanywhere", "mistral", "openrouter", "groq")
+LOGGER = logging.getLogger(__name__)
 
 
 def create_router_from_env(
@@ -30,12 +33,18 @@ def create_router_from_env(
     state_backend: str = "json",
     async_http_client_factory: Any | None = None,
     enable_async_network: bool = False,
+    refresh_models_on_startup: bool = False,
 ) -> AIRouter:
     """Create an AIRouter from environment variables only.
 
     `strategy="live_free_first"` reorders providers for live smoke usage but
-    never enables network by itself.
+    never enables network by itself. Set both `enable_network=True` and
+    `refresh_models_on_startup=True` to opt into a provider model catalog refresh.
+    Discovery failures retain static profile defaults and never block construction.
     """
+
+    if refresh_models_on_startup and not enable_network:
+        raise ValueError("refresh_models_on_startup requires enable_network=True")
 
     source_env = env or os.environ
     selected_names = _resolve_provider_names(provider_names, strategy)
@@ -53,9 +62,43 @@ def create_router_from_env(
             enable_async_network=enable_async_network,
         )
         if provider is not None:
+            if refresh_models_on_startup:
+                _refresh_provider_models(profile, provider)
             providers.append(provider)
     effective_state_store = state_store or _state_store_from_path(state_path, state_backend)
     return AIRouter(providers, policy=policy, state_store=effective_state_store)
+
+
+def _refresh_provider_models(profile: ProviderProfile, provider: OpenAICompatibleProvider) -> None:
+    """Merge a live model listing into a constructed provider without persisting it."""
+
+    key = provider.api_keys[0] if provider.api_keys else ""
+    try:
+        discovered = discover_provider_models(
+            profile.name,
+            api_key=key,
+            base_url=provider.base_url,
+            http_client=provider.http_client,
+        )
+    except Exception as exc:
+        LOGGER.warning("Model refresh skipped for provider %s (%s)", profile.name, type(exc).__name__)
+        return
+
+    discovered_models = [item.model for item in discovered if item.model]
+    provider.models = _merge_model_catalog(discovered_models, provider.models)
+
+
+def _merge_model_catalog(discovered_models: Sequence[str], fallback_models: Sequence[str]) -> list[str]:
+    """Put discovered IDs first, removing duplicates and blank entries."""
+
+    merged: list[str] = []
+    seen: set[str] = set()
+    for model in (*discovered_models, *fallback_models):
+        normalized = str(model or "").strip()
+        if normalized and normalized not in seen:
+            merged.append(normalized)
+            seen.add(normalized)
+    return merged
 
 
 def _state_store_from_path(state_path: str | Path | None, state_backend: str) -> Any | None:

@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_LOCAL_KEY_FILE = ROOT / "API Key.txt"
 sys.path.insert(0, str(ROOT / "src"))
 
 from nakazasen_ai_router import AIRequest, RouterError, create_router_from_env
@@ -39,7 +40,11 @@ PROVIDER_LABEL_ALIASES = {
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run safe live provider smoke tests.")
     parser.add_argument("--provider", required=True, choices=sorted(PROVIDER_ENV | {"all": ""}))
-    parser.add_argument("--key-file", default="", help="Path to key file outside this repository")
+    parser.add_argument(
+        "--key-file",
+        default=str(DEFAULT_LOCAL_KEY_FILE),
+        help="Local ignored API Key.txt path; override with another external key file when needed",
+    )
     parser.add_argument("--stop-on-first-pass", action="store_true")
     parser.add_argument("--model", default="", help="Force a single model id for this smoke test")
     parser.add_argument("--list-models", action="store_true", help="List configured provider models and exit")
@@ -118,7 +123,7 @@ def run_provider(provider: str, key_file: Path, *, model: str = "", http_client_
         }
     except RouterError as exc:
         attempt = exc.attempts[-1] if exc.attempts else {}
-        provider_obj = router.providers[0].provider if 'router' in locals() and router.providers else None
+        provider_obj = router.providers[0].provider if "router" in locals() and router.providers else None
         status_code = ""
         safe_message = ""
         if provider_obj is not None:

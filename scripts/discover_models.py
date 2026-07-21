@@ -11,17 +11,21 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
-from nakazasen_ai_router.discovery import DiscoveredModel, discover_provider_models
+from nakazasen_ai_router.discovery import DiscoveredModel, ProviderModelDiscoveryError, discover_provider_models
 from nakazasen_ai_router.registry import PROVIDER_REGISTRY
-from scripts.live_smoke import PROVIDER_ENV, print_result, read_key_from_file, run_provider
+from scripts.live_smoke import DEFAULT_LOCAL_KEY_FILE, PROVIDER_ENV, print_result, read_key_from_file, run_provider
 
 logging.getLogger("nakazasen_ai_router").setLevel(logging.CRITICAL)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Discover provider models safely.")
-    parser.add_argument("--provider", required=True, choices=("gemini",))
-    parser.add_argument("--key-file", required=True)
+    parser.add_argument("--provider", required=True, choices=sorted(PROVIDER_ENV))
+    parser.add_argument(
+        "--key-file",
+        default=str(DEFAULT_LOCAL_KEY_FILE),
+        help="Local ignored API Key.txt path; override with another external key file when needed",
+    )
     parser.add_argument("--validate-live", action="store_true")
     parser.add_argument("--only-new", action="store_true")
     parser.add_argument("--write-report", default="")
@@ -36,7 +40,11 @@ def main() -> int:
         print(f"provider={args.provider} | status=SKIP | reason=missing key for provider")
         return 0
 
-    discovered = discover_provider_models(args.provider, api_key=key)
+    try:
+        discovered = discover_provider_models(args.provider, api_key=key)
+    except ProviderModelDiscoveryError as exc:
+        print(f"provider={args.provider} | status=SKIP | reason={type(exc).__name__}")
+        return 0
     existing = set(PROVIDER_REGISTRY[args.provider].default_models)
     rows = [model for model in discovered if not args.only_new or model.model not in existing]
     for model in rows:

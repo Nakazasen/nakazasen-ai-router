@@ -7,8 +7,8 @@ from nakazasen_ai_router.registry import PROVIDER_REGISTRY
 
 
 class MockResponse:
-    def __init__(self, payload):
-        self.status_code = 200
+    def __init__(self, payload, status_code=200):
+        self.status_code = status_code
         self.payload = payload
         self.headers = {}
 
@@ -17,9 +17,11 @@ class MockResponse:
 
 
 class MockHTTPClient:
-    def __init__(self, responses=None):
+    def __init__(self, responses=None, get_responses=None):
         self.calls = []
+        self.get_calls = []
         self.responses = list(responses or [])
+        self.get_responses = list(get_responses or [])
 
     def post(self, url, *, headers, json, timeout):
         self.calls.append({"url": url, "headers": dict(headers), "json": json, "timeout": timeout})
@@ -29,6 +31,15 @@ class MockHTTPClient:
                 raise response
             return response
         return MockResponse({"choices": [{"message": {"content": "ok"}}]})
+
+    def get(self, url, *, headers, timeout):
+        self.get_calls.append({"url": url, "headers": dict(headers), "timeout": timeout})
+        if self.get_responses:
+            response = self.get_responses.pop(0)
+            if isinstance(response, Exception):
+                raise response
+            return response
+        return MockResponse({"data": []})
 
 
 def test_env_openrouter_key_creates_provider():
@@ -127,6 +138,68 @@ def test_empty_plural_api_key_entries_are_ignored():
     provider = router.providers[0].provider
 
     assert provider.api_keys == ["fake-groq-one", "fake-groq-two"]
+
+
+def test_startup_model_refresh_requires_network_opt_in():
+    with pytest.raises(ValueError, match="requires enable_network=True"):
+        create_router_from_env(
+            env={"DEEPSEEK_API_KEY": "fake-deepseek-key"},
+            provider_names=("deepseek",),
+            http_client_factory=MockHTTPClient(),
+            refresh_models_on_startup=True,
+        )
+
+
+def test_startup_model_refresh_is_disabled_by_default():
+    client = MockHTTPClient(get_responses=[MockResponse({"data": [{"id": "deepseek-v5-chat"}]})])
+
+    router = create_router_from_env(
+        env={"DEEPSEEK_API_KEY": "fake-deepseek-key"},
+        provider_names=("deepseek",),
+        http_client_factory=client,
+        enable_network=True,
+    )
+
+    assert client.get_calls == []
+    assert router.providers[0].provider.models == ["deepseek-v4-flash", "deepseek-v4-pro"]
+
+
+def test_startup_model_refresh_merges_discovered_models_before_static_fallbacks():
+    raw_key = "fake-deepseek-key"
+    client = MockHTTPClient(
+        get_responses=[MockResponse({"data": [{"id": "deepseek-v5-chat"}, {"id": "text-embedding-v4"}, {"id": "deepseek-v4-flash"}]})]
+    )
+
+    router = create_router_from_env(
+        env={"DEEPSEEK_API_KEY": raw_key},
+        provider_names=("deepseek",),
+        http_client_factory=client,
+        enable_network=True,
+        refresh_models_on_startup=True,
+    )
+
+    provider = router.providers[0].provider
+    assert provider.models == ["deepseek-v5-chat", "deepseek-v4-flash", "deepseek-v4-pro"]
+    assert client.get_calls[0]["url"] == "https://api.deepseek.com/v1/models"
+    assert client.get_calls[0]["headers"]["Authorization"] == f"Bearer {raw_key}"
+    assert raw_key not in str(provider)
+
+
+def test_startup_model_refresh_failure_keeps_static_models(caplog):
+    client = MockHTTPClient(get_responses=[MockResponse({}, status_code=500)])
+
+    with caplog.at_level(logging.WARNING):
+        router = create_router_from_env(
+            env={"DEEPSEEK_API_KEY": "fake-deepseek-key"},
+            provider_names=("deepseek",),
+            http_client_factory=client,
+            enable_network=True,
+            refresh_models_on_startup=True,
+        )
+
+    assert router.providers[0].provider.models == ["deepseek-v4-flash", "deepseek-v4-pro"]
+    assert "deepseek" in caplog.text
+    assert "fake-deepseek-key" not in caplog.text
 
 
 def test_key_quota_cooldown_falls_back_to_next_key_same_provider():

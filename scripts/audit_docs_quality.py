@@ -51,7 +51,23 @@ def audit_docs_quality() -> list[str]:
         if SECRET_RE.search(text):
             findings.append(f"secret-pattern: {rel}")
         if "API Key.txt" in text:
-            findings.append(f"hard-coded-key-file-name: {rel}")
+            key_file_docs = {
+                "README.md",
+                "README.vi.md",
+                "ARCHITECTURE.md",
+                "CHANGELOG.md",
+                "docs/provider_keys.md",
+                "docs/provider_keys.vi.md",
+                "docs/releases/0.2.2.md",
+                "docs/releases/0.2.3.md",
+                "docs/install_update.md",
+                "docs/install_update.vi.md",
+                "docs/live_conformance.md",
+                "docs/path_hygiene.vi.md",
+                "docs/vi/ROADMAP.vi.md",
+            }
+            if rel.as_posix() not in key_file_docs:
+                findings.append(f"hard-coded-key-file-name: {rel}")
     return findings
 
 

@@ -1,4 +1,4 @@
-﻿# Public API Contract
+# Public API Contract
 
 `nakazasen-ai-router` is still pre-1.0, but applications should import stable integration surfaces from the package root:
 
@@ -52,6 +52,30 @@ from nakazasen_ai_router import AIRouter, AIRequest, RouterPolicy, create_router
 - `ModelCapability`
 - `capability_for`
 - `score_candidate_for_task`
+
+## Host-application keys and startup catalog refresh
+
+A host application supplies provider keys through its own secret manager, environment, or private `env` mapping. The key is never supplied by this package:
+
+```python
+router = create_router_from_env(
+    env={"GEMINI_API_KEY": host_secret_manager.read("gemini")},
+    provider_names=("gemini",),
+    enable_network=True,
+)
+```
+
+To query the provider model catalog when the router starts, opt into both networking and refresh:
+
+```python
+router = create_router_from_env(
+    provider_names=("gemini", "deepseek"),
+    enable_network=True,
+    refresh_models_on_startup=True,
+)
+```
+
+Discovery is process-local and non-blocking: discovered chat models are placed before static defaults only for this router instance; a discovery failure preserves static defaults.
 
 ## Compatibility promise
 
