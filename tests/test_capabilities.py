@@ -1,4 +1,4 @@
-﻿from nakazasen_ai_router import ModelCapability, capability_for, score_candidate_for_task
+from nakazasen_ai_router import ModelCapability, TokenUsage, capability_for, estimate_cost, normalize_token_usage, score_candidate_for_task
 
 
 def test_capability_for_known_and_unknown_model():
@@ -24,3 +24,24 @@ def test_task_scoring_prefers_long_context_for_translation_and_free_for_cheap():
 
     assert score_candidate_for_task(long_context, "translation_longform") > score_candidate_for_task(free_small, "translation_longform")
     assert score_candidate_for_task(free_small, "cheap_generation") > score_candidate_for_task(long_context, "cheap_generation")
+
+
+def test_normalize_token_usage_supports_openai_and_gemini_shapes():
+    openai = normalize_token_usage({"prompt_tokens": 12, "completion_tokens": 8, "total_tokens": 20})
+    gemini = normalize_token_usage({"promptTokenCount": 7, "candidatesTokenCount": 3, "totalTokenCount": 10})
+
+    assert openai == TokenUsage(12, 8, 20, "provider_reported")
+    assert gemini == TokenUsage(7, 3, 10, "provider_reported")
+
+
+def test_cost_estimate_requires_verified_prices_and_usage_split():
+    priced = ModelCapability("p", "m", input_cost_per_million=1.0, output_cost_per_million=2.0, currency="USD")
+
+    known = estimate_cost(TokenUsage(1_000_000, 500_000, 1_500_000), priced)
+    total_only = estimate_cost(TokenUsage(total_tokens=100), priced)
+    unpriced = estimate_cost(TokenUsage(10, 20, 30), ModelCapability("p", "unknown"))
+
+    assert known.status == "estimated"
+    assert known.total_cost == 2.0
+    assert total_only.status == "unknown"
+    assert unpriced.status == "unknown"

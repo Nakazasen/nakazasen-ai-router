@@ -38,6 +38,18 @@ jobs:
           NAKAZASEN_SKIP_LIVE: "1"
         run: python -m pytest -q
 
+      - name: Compile and audit repository
+        run: |
+          python -m compileall -q src scripts
+          python scripts/audit_docs_quality.py
+          python scripts/audit_local_paths.py
+          python scripts/audit_positioning.py
+          python scripts/audit_text_encoding.py
+
+      - name: Check release metadata
+        if: matrix.python-version == '3.12'
+        run: python scripts/release_check.py 0.3.0
+
       - name: Build package
         run: python -m build
 

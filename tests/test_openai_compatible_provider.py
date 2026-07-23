@@ -61,8 +61,11 @@ def make_provider(http_client, *, async_http_client=None, api_keys=None, models=
     )
 
 
-def success_response(content="hello"):
-    return MockResponse(payload={"choices": [{"message": {"content": content}}]})
+def success_response(content="hello", usage=None):
+    payload = {"choices": [{"message": {"content": content}}]}
+    if usage is not None:
+        payload["usage"] = usage
+    return MockResponse(payload=payload)
 
 
 def test_mock_success_returns_content_and_builds_chat_completion_request():
@@ -74,6 +77,21 @@ def test_mock_success_returns_content_and_builds_chat_completion_request():
     assert result.text == "xin chao"
     assert client.calls[0]["url"] == "https://example.test/v1/chat/completions"
     assert client.calls[0]["json"] == {"model": "model-a", "messages": [{"role": "user", "content": "hello"}]}
+
+
+def test_success_normalizes_usage_without_copying_raw_provider_fields():
+    usage = {"prompt_tokens": 5, "completion_tokens": 3, "total_tokens": 8, "raw_secret": "must-not-leak"}
+    provider = make_provider(MockHTTPClient([success_response("ok", usage)]))
+
+    result = provider.generate(AIRequest(prompt="hello"))
+
+    assert result.metadata["token_usage"] == {
+        "input_tokens": 5,
+        "output_tokens": 3,
+        "total_tokens": 8,
+        "source": "provider_reported",
+    }
+    assert "must-not-leak" not in str(result.metadata)
 
 
 def test_messages_metadata_is_used_when_present():

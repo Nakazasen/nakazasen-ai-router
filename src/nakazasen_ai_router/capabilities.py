@@ -1,9 +1,47 @@
-"""Model capability catalog and task-aware candidate scoring."""
+"""Model capability catalog, provenance, token usage, and cost helpers."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping
+from typing import Any, Mapping
+
+
+@dataclass(frozen=True)
+class TokenUsage:
+    """Normalized, non-sensitive token usage for one provider response."""
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+    source: str = "unknown"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "total_tokens": self.total_tokens,
+            "source": self.source,
+        }
+
+
+@dataclass(frozen=True)
+class CostEstimate:
+    """Calculated cost. Unknown pricing is represented explicitly, never guessed."""
+
+    input_cost: float | None = None
+    output_cost: float | None = None
+    total_cost: float | None = None
+    currency: str = "USD"
+    status: str = "unknown"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "input_cost": self.input_cost,
+            "output_cost": self.output_cost,
+            "total_cost": self.total_cost,
+            "currency": self.currency,
+            "status": self.status,
+        }
 
 
 @dataclass(frozen=True)
@@ -18,6 +56,14 @@ class ModelCapability:
     supports_streaming: bool = False
     supports_json_mode: bool = False
     recommended_tasks: tuple[str, ...] = ()
+    input_cost_per_million: float | None = None
+    output_cost_per_million: float | None = None
+    currency: str = "USD"
+    quota_pool_id: str = ""
+    source_url: str = ""
+    verified_at: str = ""
+    confidence: str = "unknown"
+    terms_note: str = ""
 
 
 CAPABILITY_CATALOG: dict[tuple[str, str], ModelCapability] = {
@@ -47,6 +93,37 @@ def capability_for(provider: str, model: str, overrides: Mapping[tuple[str, str]
     if overrides and (provider, model) in overrides:
         return overrides[(provider, model)]
     return CAPABILITY_CATALOG.get((provider, model), ModelCapability(provider=provider, model=model))
+
+
+def normalize_token_usage(value: Any, *, source: str = "provider_reported") -> TokenUsage:
+    """Normalize common OpenAI/Gemini-style usage mappings without retaining raw data."""
+
+    if isinstance(value, TokenUsage):
+        return value
+    if not isinstance(value, Mapping):
+        return TokenUsage()
+    input_tokens = _non_negative_int(value.get("input_tokens", value.get("prompt_tokens", value.get("promptTokenCount", 0))))
+    output_tokens = _non_negative_int(value.get("output_tokens", value.get("completion_tokens", value.get("candidatesTokenCount", 0))))
+    total_tokens = _non_negative_int(value.get("total_tokens", value.get("totalTokenCount", 0)))
+    if total_tokens == 0:
+        total_tokens = input_tokens + output_tokens
+    if input_tokens == 0 and output_tokens == 0 and total_tokens == 0:
+        return TokenUsage()
+    declared_source = str(value.get("source", source) or source)
+    return TokenUsage(input_tokens, output_tokens, total_tokens, declared_source)
+
+
+def estimate_cost(usage: TokenUsage | Mapping[str, Any], capability: ModelCapability) -> CostEstimate:
+    """Calculate token cost only when prices and the input/output split are known."""
+
+    normalized = normalize_token_usage(usage) if not isinstance(usage, TokenUsage) else usage
+    pricing_known = capability.input_cost_per_million is not None and capability.output_cost_per_million is not None
+    split_known = normalized.total_tokens == 0 or normalized.input_tokens > 0 or normalized.output_tokens > 0
+    if not pricing_known or not split_known or normalized.total_tokens <= 0:
+        return CostEstimate(currency=capability.currency)
+    input_cost = normalized.input_tokens * capability.input_cost_per_million / 1_000_000
+    output_cost = normalized.output_tokens * capability.output_cost_per_million / 1_000_000
+    return CostEstimate(input_cost, output_cost, input_cost + output_cost, capability.currency, "estimated")
 
 
 def _normalize_task_type(task_type: str) -> str:
@@ -91,3 +168,10 @@ def score_candidate_for_task(capability: ModelCapability, task_type: str, qualit
         score += _COST_SCORE.get(capability.cost_tier, 0) // 2
         score += _QUALITY_SCORE.get(capability.quality_tier, 0) // 2
     return score
+
+
+def _non_negative_int(value: Any) -> int:
+    try:
+        return max(0, int(value or 0))
+    except (TypeError, ValueError):
+        return 0

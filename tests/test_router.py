@@ -6,7 +6,22 @@ import time
 
 import pytest
 
-from nakazasen_ai_router import AIRequest, AIResult, AIStreamChunk, AIRouter, MemoryStateStore, ProviderBase, ProviderCandidate, ProviderError, RouterError, RouterPolicy
+from nakazasen_ai_router import (
+    AIRequest,
+    AIResult,
+    AIStreamChunk,
+    AIRouter,
+    CapacityPolicy,
+    InMemoryQuotaTracker,
+    MemoryStateStore,
+    ModelCapability,
+    ProviderBase,
+    ProviderCandidate,
+    ProviderError,
+    ProviderQuotaProfile,
+    RouterError,
+    RouterPolicy,
+)
 from nakazasen_ai_router.core import classify_error, extract_retry_after_seconds, mask_key_id
 from nakazasen_ai_router.fake_providers import (
     provider_fail_auth,
@@ -411,3 +426,59 @@ def test_astream_uses_provider_astream_generate_when_available():
 
     assert [chunk.text for chunk in chunks] == ["apart-1", "apart-2"]
     assert chunks[-1].done is True
+
+
+def test_weighted_mode_pack_changes_candidate_selection():
+    fast = CandidateProvider("fast", [AIResult("fast", "fast")], candidates=[ProviderCandidate(provider=None, model="m-fast")])
+    cheap = CandidateProvider("cheap", [AIResult("cheap", "cheap")], candidates=[ProviderCandidate(provider=None, model="m-cheap")])
+    fast.health.last_latency_ms = 20
+    cheap.health.last_latency_ms = 2000
+    overrides = {
+        ("fast", "m-fast"): ModelCapability("fast", "m-fast", cost_tier="premium"),
+        ("cheap", "m-cheap"): ModelCapability("cheap", "m-cheap", cost_tier="free"),
+    }
+
+    fast_result = AIRouter([cheap, fast], policy=RouterPolicy(routing_mode="fast", capability_overrides=overrides)).route(AIRequest("x"))
+    cheap_result = AIRouter([fast, cheap], policy=RouterPolicy(routing_mode="cheap", capability_overrides=overrides)).route(AIRequest("x"))
+
+    assert fast_result.provider_name == "fast"
+    assert cheap_result.provider_name == "cheap"
+
+
+def test_quota_block_skips_provider_without_calling_it():
+    blocked = provider_success("blocked")
+    quota = InMemoryQuotaTracker([ProviderQuotaProfile("blocked", policy=CapacityPolicy(enabled=False))])
+
+    with pytest.raises(RouterError) as exc_info:
+        AIRouter([blocked], quota_tracker=quota).route(AIRequest("x"))
+
+    assert blocked.calls == 0
+    assert exc_info.value.attempts[0]["reason"] == "quota_block"
+
+
+def test_router_reconciles_usage_and_adds_safe_accounting_metadata():
+    provider = CandidateProvider(
+        "metered",
+        [AIResult("ok", "metered", metadata={"token_usage": {"input_tokens": 4, "output_tokens": 2, "total_tokens": 6}})],
+        candidates=[ProviderCandidate(provider=None, model="m")],
+    )
+    capability = ModelCapability(
+        "metered",
+        "m",
+        input_cost_per_million=1.0,
+        output_cost_per_million=2.0,
+        source_url="https://example.test/catalog",
+        verified_at="2026-07-23",
+        confidence="verified",
+    )
+    quota = InMemoryQuotaTracker([ProviderQuotaProfile("metered", "m", policy=CapacityPolicy(tokens_per_minute=100))])
+    router = AIRouter([provider], policy=RouterPolicy(capability_overrides={("metered", "m"): capability}), quota_tracker=quota)
+
+    result = router.route(AIRequest("x", metadata={"estimated_total_tokens": 10}))
+    usage = quota.snapshot()["profiles"][0]["usage"]
+
+    assert usage["tokens_last_minute"] == 6
+    assert result.metadata["cost_estimate"]["status"] == "estimated"
+    assert result.metadata["catalog_provenance"]["confidence"] == "verified"
+    assert result.metadata["routing"]["mode"] == "balanced"
+    assert "components" in result.metadata["routing"]

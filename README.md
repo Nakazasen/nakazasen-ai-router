@@ -7,10 +7,10 @@ See [docs/provider_keys.md](docs/provider_keys.md) for API key setup, [examples/
 ## Stable install
 
 ```powershell
-pip install git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.3
+pip install git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.3.0
 ```
 
-Release notes: [0.2.3.md](docs/releases/0.2.3.md)
+Release notes: [0.3.0.md](docs/releases/0.3.0.md)
 
 Vietnamese documentation: [README.vi.md](README.vi.md)
 
@@ -28,7 +28,9 @@ Translation is intentionally only one example of a general-purpose workload.
 - Supports durable `route_outcome()` results for job queues.
 - Supports JSON or SQLite state storage.
 - Provides sync and async routing APIs.
-- Supports workload/capability based candidate scoring.
+- Provides explainable weighted routing with balanced, fast, cheap, quality, and quota mode packs.
+- Supports thread-safe, process-local shared quota pools and named fixed windows.
+- Normalizes token usage and reports catalog provenance plus conservative cost estimates.
 - Provides budget guard and exponential retry backoff.
 - Supports opt-in provider model catalog refresh at router startup.
 
@@ -95,6 +97,12 @@ py scripts/discover_models.py --provider deepseek --key-file "D:\path\to\provide
 ```
 
 A key file can use either a label followed by a value or `KEY=value` format. See [docs/provider_keys.md](docs/provider_keys.md) for integration and secret-handling guidance.
+
+## Architecture and release operations
+
+- Human/AI system handoff, folder map, and Mermaid models: [ARCHITECTURE.md](ARCHITECTURE.md)
+- Standard packaging/version/release process: [docs/releasing.md](docs/releasing.md)
+- Public SDK contract: [docs/public_api.md](docs/public_api.md)
 
 ## Security and privacy principles
 

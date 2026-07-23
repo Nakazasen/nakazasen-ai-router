@@ -7,10 +7,10 @@ Xem [docs/provider_keys.vi.md](docs/provider_keys.vi.md) để cấu hình API k
 ## Cài bản stable
 
 ```powershell
-pip install git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.2.3
+pip install git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.3.0
 ```
 
-Ghi chú phát hành: [0.2.3.md](docs/releases/0.2.3.md)
+Ghi chú phát hành: [0.3.0.md](docs/releases/0.3.0.md)
 
 Nakazasen AI Router là lớp cung cấp năng lực AI đa nhiệm cho ứng dụng Python. Thư viện định tuyến request qua provider local/cloud, quản lý trạng thái provider/model/key và cho phép repo khác tích hợp AI mà không gắn core với một domain riêng. Dịch chương chỉ là một ví dụ về workload tổng quát.
 
@@ -22,7 +22,10 @@ Mặc định dự án theo hướng mock-first: unit test không gọi mạng v
 - Fallback giữa provider, model và API key khi có lỗi.
 - Theo dõi health/cooldown theo provider + model + key.
 - Hỗ trợ `route_outcome()` cho job queue bền vững.
-- Hỗ trợ state JSON hoặc SQLite, API sync/async và scoring theo capability.
+- Hỗ trợ state JSON hoặc SQLite và API sync/async.
+- Định tuyến có trọng số, giải thích được với các mode cân bằng, nhanh, rẻ, chất lượng và bảo toàn quota.
+- Hỗ trợ pool quota dùng chung và cửa sổ cố định linh hoạt, thread-safe trong một process.
+- Chuẩn hóa token usage, ghi nguồn catalog và ước tính chi phí thận trọng.
 - Hỗ trợ quét catalog model mới lúc khởi động theo cơ chế opt-in.
 
 ## Provider hiện hỗ trợ
@@ -88,6 +91,12 @@ py scripts/discover_models.py --provider deepseek --key-file "D:\path\to\provide
 ```
 
 File key hỗ trợ dạng nhãn rồi đến value hoặc `KEY=value`. Xem [docs/provider_keys.vi.md](docs/provider_keys.vi.md) để biết hướng dẫn tích hợp và quản lý bí mật.
+
+## Kiến trúc và vận hành release
+
+- Bản bàn giao hệ thống cho người/AI, bản đồ thư mục và sơ đồ Mermaid: [ARCHITECTURE.md](ARCHITECTURE.md)
+- Quy trình chuẩn đóng gói, quản lý phiên bản và phát hành: [docs/releasing.vi.md](docs/releasing.vi.md)
+- Contract SDK public: [docs/public_api.md](docs/public_api.md)
 
 ## Nguyên tắc bảo mật
 

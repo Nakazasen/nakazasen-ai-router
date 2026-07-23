@@ -12,6 +12,7 @@ from .core import AIRouter, RouterPolicy
 from .discovery import discover_provider_models
 from .http import HttpxAsyncHTTPClient, UrllibHTTPClient
 from .providers import OpenAICompatibleProvider
+from .quota import InMemoryQuotaTracker
 from .registry import PROVIDER_REGISTRY, ProviderProfile
 from .state import JsonStateStore
 from .storage_sqlite import SQLiteStateStore
@@ -34,6 +35,7 @@ def create_router_from_env(
     async_http_client_factory: Any | None = None,
     enable_async_network: bool = False,
     refresh_models_on_startup: bool = False,
+    quota_tracker: InMemoryQuotaTracker | None = None,
 ) -> AIRouter:
     """Create an AIRouter from environment variables only.
 
@@ -66,7 +68,7 @@ def create_router_from_env(
                 _refresh_provider_models(profile, provider)
             providers.append(provider)
     effective_state_store = state_store or _state_store_from_path(state_path, state_backend)
-    return AIRouter(providers, policy=policy, state_store=effective_state_store)
+    return AIRouter(providers, policy=policy, state_store=effective_state_store, quota_tracker=quota_tracker)
 
 
 def _refresh_provider_models(profile: ProviderProfile, provider: OpenAICompatibleProvider) -> None:

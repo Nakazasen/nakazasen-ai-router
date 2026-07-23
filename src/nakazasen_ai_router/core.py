@@ -13,7 +13,9 @@ from email.utils import parsedate_to_datetime
 from typing import Any, Mapping, Sequence
 from datetime import datetime, timezone
 
-from .capabilities import ModelCapability, capability_for, score_candidate_for_task
+from .capabilities import ModelCapability, capability_for, estimate_cost, normalize_token_usage, score_candidate_for_task
+from .quota import InMemoryQuotaTracker, QuotaDecision
+from .routing import RoutingScore, ScoreWeights, score_routing_candidate
 from .state import MemoryStateStore, RouterStateStore
 
 LOGGER = logging.getLogger(__name__)
@@ -171,6 +173,8 @@ class RouterPolicy:
     backoff_base_seconds: float = 15.0
     backoff_max_seconds: float = 3600.0
     backoff_jitter_ratio: float = 0.0
+    routing_mode: str = "balanced"
+    score_weights: ScoreWeights | None = None
 
 
 class ProviderBase:
@@ -199,9 +203,11 @@ class AIRouter:
         providers: Sequence[ProviderBase | ProviderCandidate],
         policy: RouterPolicy | None = None,
         state_store: RouterStateStore | None = None,
+        quota_tracker: InMemoryQuotaTracker | None = None,
     ) -> None:
         self.policy = policy or RouterPolicy()
         self.state_store = state_store or MemoryStateStore()
+        self.quota_tracker = quota_tracker or InMemoryQuotaTracker()
         self.providers = self._normalize(providers)
 
     def route_outcome(self, request: AIRequest) -> AIRouteOutcome:
@@ -298,6 +304,8 @@ class AIRouter:
             raise RouterError("Request exceeded configured router budget", attempts=[self._budget_attempt(budget_error)])
 
         attempts: list[dict[str, Any]] = []
+        estimated_tokens = self._estimated_tokens(request)
+        task_type = self._effective_task_type(request)
         for base_candidate in self._ordered_candidates(request):
             provider = base_candidate.provider
             skip_reason = self._skip_reason(provider)
@@ -312,6 +320,10 @@ class AIRouter:
                 if not candidate_state.is_available():
                     attempts.append(self._attempt(provider, candidate, "skipped", reason="key_cooldown"))
                     continue
+                quota_check = self.quota_tracker.reserve(provider.name, candidate.model, candidate.key_id, estimated_tokens=estimated_tokens)
+                if quota_check.decision != QuotaDecision.ALLOW:
+                    attempts.append(self._attempt(provider, candidate, "skipped", reason=f"quota_{quota_check.decision.value}"))
+                    continue
                 started = time.time()
                 try:
                     agenerate = getattr(provider, "agenerate", None)
@@ -319,9 +331,11 @@ class AIRouter:
                     latency_ms = round((time.time() - started) * 1000)
                     self._mark_success(provider, latency_ms)
                     self.state_store.record_success(provider.name, candidate.model, candidate.key_id, latency_ms=latency_ms)
+                    self.quota_tracker.record_success(provider.name, candidate.model, candidate.key_id)
+                    self._reconcile_usage(candidate, result, estimated_tokens)
                     success_attempt = self._attempt(provider, candidate, "success", latency_ms=latency_ms)
                     attempts.append(success_attempt)
-                    merged_metadata = dict(result.metadata)
+                    merged_metadata = self._result_metadata(result, candidate, task_type)
                     merged_metadata.setdefault("attempts", attempts)
                     return AIResult(text=result.text, provider_name=result.provider_name or provider.name, metadata=merged_metadata)
                 except ProviderError as exc:
@@ -334,7 +348,10 @@ class AIRouter:
                     provider_has_key_pool = len(getattr(provider, "api_keys", []) or []) > 1
                     self._mark_failure(provider, error_type, str(exc), latency_ms, retry_after, provider_scope=not provider_has_key_pool)
                     self.state_store.record_failure(provider.name, candidate.model, candidate.key_id, error_type=error_type, error_message=str(exc), latency_ms=latency_ms, cooldown_until=cooldown_until, disable=error_type == "auth_failure")
+                    self.quota_tracker.record_failure(provider.name, candidate.model, candidate.key_id, error_type=error_type)
                     attempts.append(self._attempt(provider, candidate, "failed", reason=error_type, latency_ms=latency_ms))
+                finally:
+                    self.quota_tracker.release(provider.name, candidate.model, candidate.key_id)
         detail = ", ".join(f"{a['provider']}:{a.get('reason', a['status'])}" for a in attempts) or "no eligible providers"
         raise RouterError(f"No provider returned a result: {detail}", attempts=attempts)
 
@@ -391,6 +408,8 @@ class AIRouter:
             raise RouterError("Request exceeded configured router budget", attempts=[self._budget_attempt(budget_error)])
 
         attempts: list[dict[str, Any]] = []
+        estimated_tokens = self._estimated_tokens(request)
+        task_type = self._effective_task_type(request)
         for base_candidate in self._ordered_candidates(request):
             provider = base_candidate.provider
             skip_reason = self._skip_reason(provider)
@@ -407,15 +426,21 @@ class AIRouter:
                 if not candidate_state.is_available():
                     attempts.append(self._attempt(provider, candidate, "skipped", reason="key_cooldown"))
                     continue
+                quota_check = self.quota_tracker.reserve(provider.name, candidate.model, candidate.key_id, estimated_tokens=estimated_tokens)
+                if quota_check.decision != QuotaDecision.ALLOW:
+                    attempts.append(self._attempt(provider, candidate, "skipped", reason=f"quota_{quota_check.decision.value}"))
+                    continue
                 started = time.time()
                 try:
                     result = provider.generate(request, candidate)
                     latency_ms = round((time.time() - started) * 1000)
                     self._mark_success(provider, latency_ms)
                     self.state_store.record_success(provider.name, candidate.model, candidate.key_id, latency_ms=latency_ms)
+                    self.quota_tracker.record_success(provider.name, candidate.model, candidate.key_id)
+                    self._reconcile_usage(candidate, result, estimated_tokens)
                     success_attempt = self._attempt(provider, candidate, "success", latency_ms=latency_ms)
                     attempts.append(success_attempt)
-                    merged_metadata = dict(result.metadata)
+                    merged_metadata = self._result_metadata(result, candidate, task_type)
                     merged_metadata.setdefault("attempts", attempts)
                     return AIResult(text=result.text, provider_name=result.provider_name or provider.name, metadata=merged_metadata)
                 except ProviderError as exc:
@@ -437,8 +462,11 @@ class AIRouter:
                         cooldown_until=cooldown_until,
                         disable=error_type == "auth_failure",
                     )
+                    self.quota_tracker.record_failure(provider.name, candidate.model, candidate.key_id, error_type=error_type)
                     attempts.append(self._attempt(provider, candidate, "failed", reason=error_type, latency_ms=latency_ms))
                     LOGGER.warning("Provider %s failed with %s; trying next candidate", provider.name, error_type)
+                finally:
+                    self.quota_tracker.release(provider.name, candidate.model, candidate.key_id)
 
         detail = ", ".join(f"{a['provider']}:{a.get('reason', a['status'])}" for a in attempts) or "no eligible providers"
         raise RouterError(f"No provider returned a result: {detail}", attempts=attempts)
@@ -448,6 +476,7 @@ class AIRouter:
         return {
             "cooldown",
             "key_cooldown",
+            "quota_throttle",
             "quota_rate_limit",
             "quota_exhausted_daily",
             "insufficient_quota",
@@ -465,7 +494,7 @@ class AIRouter:
         last_resort = set(self.policy.last_resort_providers)
         candidates = [item for item in self.providers if item.provider.name in allowed and item.provider.name not in avoid]
         task_type = self._effective_task_type(request) if request is not None else self.policy.task_type
-        return sorted(candidates, key=lambda item: (item.provider.name in last_resort, -self._candidate_task_score(item, task_type), item.priority))
+        return sorted(candidates, key=lambda item: (item.provider.name in last_resort, -self._routing_score(item, task_type).total, item.priority))
 
     def _effective_task_type(self, request: AIRequest | None) -> str:
         if request is not None and isinstance(request.metadata, Mapping):
@@ -475,12 +504,31 @@ class AIRouter:
         return self.policy.task_type or "general"
 
     def _candidate_task_score(self, candidate: ProviderCandidate, task_type: str) -> int:
+        capability = self._candidate_capability(candidate)
+        return score_candidate_for_task(capability, task_type, self.policy.quality_preference)
+
+    def _candidate_capability(self, candidate: ProviderCandidate) -> ModelCapability:
         model = candidate.model
         if not model:
             provider_candidates = candidate.provider.iter_candidates()
             model = provider_candidates[0].model if provider_candidates else ""
-        capability = capability_for(candidate.provider.name, model, self.policy.capability_overrides)
-        return score_candidate_for_task(capability, task_type, self.policy.quality_preference)
+        return capability_for(candidate.provider.name, model, self.policy.capability_overrides)
+
+    def _routing_score(self, candidate: ProviderCandidate, task_type: str) -> RoutingScore:
+        capability = self._candidate_capability(candidate)
+        provider = candidate.provider
+        quota_headroom = self.quota_tracker.headroom(provider.name, capability.model, candidate.key_id)
+        return score_routing_candidate(
+            task_score=score_candidate_for_task(capability, task_type, self.policy.quality_preference),
+            cost_tier=capability.cost_tier,
+            success_count=provider.health.success_count,
+            failure_count=provider.health.failure_count,
+            latency_ms=provider.health.last_latency_ms,
+            quota_headroom=quota_headroom,
+            priority=candidate.priority,
+            mode=self.policy.routing_mode,
+            weights=self.policy.score_weights,
+        )
 
     def _budget_error(self, request: AIRequest) -> str:
         if not self.policy.reject_over_budget or not isinstance(request.metadata, Mapping):
@@ -494,6 +542,42 @@ class AIRouter:
         if output_limit is not None and output_tokens is not None and output_tokens > output_limit:
             return "estimated_output_tokens"
         return ""
+
+    @staticmethod
+    def _estimated_tokens(request: AIRequest) -> int:
+        if not isinstance(request.metadata, Mapping):
+            return 0
+        input_tokens = _optional_int(request.metadata.get("estimated_input_tokens")) or 0
+        output_tokens = _optional_int(request.metadata.get("estimated_output_tokens")) or 0
+        explicit_total = _optional_int(request.metadata.get("estimated_total_tokens"))
+        return max(0, explicit_total if explicit_total is not None else input_tokens + output_tokens)
+
+    def _reconcile_usage(self, candidate: ProviderCandidate, result: AIResult, estimated_tokens: int) -> None:
+        usage = normalize_token_usage(result.metadata.get("token_usage") if isinstance(result.metadata, Mapping) else None)
+        if usage.total_tokens > 0:
+            self.quota_tracker.reconcile_tokens(
+                candidate.provider.name,
+                candidate.model,
+                candidate.key_id,
+                estimated_tokens=estimated_tokens,
+                actual_tokens=usage.total_tokens,
+            )
+
+    def _result_metadata(self, result: AIResult, candidate: ProviderCandidate, task_type: str) -> dict[str, Any]:
+        metadata = dict(result.metadata)
+        capability = capability_for(candidate.provider.name, candidate.model, self.policy.capability_overrides)
+        usage = normalize_token_usage(metadata.get("token_usage"))
+        metadata["routing"] = self._routing_score(candidate, task_type).to_dict()
+        metadata["catalog_provenance"] = {
+            "provider": capability.provider,
+            "model": capability.model,
+            "source_url": capability.source_url,
+            "verified_at": capability.verified_at,
+            "confidence": capability.confidence,
+            "terms_note": capability.terms_note,
+        }
+        metadata["cost_estimate"] = estimate_cost(usage, capability).to_dict()
+        return sanitize_mapping(metadata)
 
     @staticmethod
     def _budget_attempt(field: str) -> dict[str, Any]:

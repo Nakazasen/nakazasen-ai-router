@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nakazasen-ai-router"
-version = "0.2.3"
-description = "Embeddable Python AI provider router with token-pool state, async support, and durable routing outcomes."
+version = "0.3.0"
+description = "Embeddable Python AI provider router with explainable weighted routing, shared quota pools, and safe usage accounting."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Nakazasen" }]
 license = "MIT"
-keywords = ["ai", "llm", "router", "provider", "token-pool", "async", "translation"]
+keywords = ["ai", "llm", "router", "provider", "quota", "cost-accounting", "async"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",

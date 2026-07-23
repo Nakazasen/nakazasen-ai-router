@@ -1,16 +1,17 @@
-﻿import json
+import json
 
 from nakazasen_ai_router import (
     CapacityPolicy,
     InMemoryQuotaTracker,
     ProviderQuotaProfile,
     QuotaDecision,
+    QuotaWindow,
     sort_profiles_for_fallback,
 )
 
 
-def profile(provider="p", model="", key_id="", **policy_kwargs):
-    return ProviderQuotaProfile(provider, model, key_id, CapacityPolicy(**policy_kwargs))
+def profile(provider="p", model="", key_id="", pool_id="", **policy_kwargs):
+    return ProviderQuotaProfile(provider, model, key_id, CapacityPolicy(**policy_kwargs), pool_id=pool_id)
 
 
 def test_no_profile_defaults_to_allow():
@@ -104,3 +105,29 @@ def test_fallback_sorting_respects_enabled_priority_and_cost():
     ]
     ordered = sort_profiles_for_fallback(profiles)
     assert [item.provider for item in ordered] == ["cheap", "premium", "free", "disabled"]
+
+
+def test_shared_pool_consumes_one_request_budget_across_profiles():
+    tracker = InMemoryQuotaTracker([
+        profile("p1", pool_id="shared", requests_per_minute=1),
+        profile("p2", pool_id="shared", requests_per_minute=1),
+    ])
+
+    assert tracker.reserve("p1", now=0).decision == QuotaDecision.ALLOW
+    assert tracker.reserve("p2", now=1).decision == QuotaDecision.THROTTLE
+
+
+def test_flexible_window_resets_and_reconcile_replaces_estimate():
+    window = QuotaWindow("burst", seconds=10, request_limit=1, token_limit=10)
+    tracker = InMemoryQuotaTracker([profile(flexible_windows=(window,))])
+
+    assert tracker.reserve("p", estimated_tokens=8, now=0).decision == QuotaDecision.ALLOW
+    tracker.reconcile_tokens("p", estimated_tokens=8, actual_tokens=4, now=1)
+    snapshot = tracker.snapshot(now=1)
+    usage = snapshot["profiles"][0]["usage"]
+
+    assert snapshot["scope"] == "process_local"
+    assert usage["tokens_last_minute"] == 4
+    assert usage["windows"]["burst:10s"]["tokens"] == 4
+    assert tracker.reserve("p", estimated_tokens=1, now=2).decision == QuotaDecision.THROTTLE
+    assert tracker.reserve("p", estimated_tokens=1, now=11).decision == QuotaDecision.ALLOW

@@ -47,11 +47,35 @@ from nakazasen_ai_router import AIRouter, AIRequest, RouterPolicy, create_router
 - `create_router_from_env`
 - `create_live_free_first_router_from_env`
 
-### Capability helpers
+### Capability, usage, and accounting helpers
 
 - `ModelCapability`
+- `TokenUsage`
+- `CostEstimate`
 - `capability_for`
 - `score_candidate_for_task`
+- `normalize_token_usage`
+- `estimate_cost`
+
+### Weighted routing
+
+- `RoutingMode`
+- `ScoreWeights`
+- `RoutingScore`
+- `MODE_WEIGHTS`
+- `weights_for_mode`
+- `score_routing_candidate`
+
+### Quota and capacity
+
+- `QuotaDecision`
+- `QuotaWindow`
+- `CapacityPolicy`
+- `ProviderQuotaProfile`
+- `QuotaCheck`
+- `UsageSnapshot`
+- `InMemoryQuotaTracker`
+- `sort_profiles_for_fallback`
 
 ## Host-application keys and startup catalog refresh
 
@@ -77,6 +101,14 @@ router = create_router_from_env(
 
 Discovery is process-local and non-blocking: discovered chat models are placed before static defaults only for this router instance; a discovery failure preserves static defaults.
 
+## Routing, quota, and accounting semantics
+
+`RouterPolicy.routing_mode` accepts `balanced`, `fast`, `cheap`, `quality`, or `quota`; callers can override built-in weights with `ScoreWeights`. Successful results include a sanitized score breakdown in `metadata["routing"]`.
+
+`InMemoryQuotaTracker` supports shared `pool_id` buckets and named fixed windows. It is thread-safe but process-local, not a distributed quota backend. Profiles sharing a pool should use compatible policies.
+
+Provider-reported usage is normalized to `TokenUsage`. Cost is marked `estimated` only when verified input/output prices and usage splits are available; otherwise its status is `unknown`. Cost estimates are operational guidance, not billing truth.
+
 ## Compatibility promise
 
 Until 1.0, public root exports may still evolve, but changes should be documented in the changelog. Internal modules may change without compatibility guarantees.
@@ -85,7 +117,7 @@ Prefer root imports for application code. Importing deep internal helpers is all
 
 ## Safety contract
 
-Public attempts, route outcomes, state stores, and dashboard exports must not include:
+Public attempts, route outcomes, state stores, quota snapshots, accounting metadata, and dashboard exports must not include:
 
 - raw API keys
 - Authorization headers

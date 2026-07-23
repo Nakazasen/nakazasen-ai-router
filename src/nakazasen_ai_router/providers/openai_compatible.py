@@ -12,6 +12,7 @@ import json
 import time
 from typing import Any, Mapping, Protocol
 
+from nakazasen_ai_router.capabilities import normalize_token_usage
 from nakazasen_ai_router.core import (
     AIRequest,
     AIResult,
@@ -178,15 +179,19 @@ class OpenAICompatibleProvider(ProviderBase):
             raise ProviderError("OpenAI-compatible response did not include message content")
 
         self._advance_after_success(candidate)
+        metadata: dict[str, Any] = {
+            "model": candidate.model,
+            "key_index": candidate.key_index,
+            "key_id": candidate.key_id,
+            "latency_ms": round((time.time() - started) * 1000),
+        }
+        usage = normalize_token_usage(data.get("usage"))
+        if usage.total_tokens > 0:
+            metadata["token_usage"] = usage.to_dict()
         return AIResult(
             text=content,
             provider_name=self.name,
-            metadata={
-                "model": candidate.model,
-                "key_index": candidate.key_index,
-                "key_id": candidate.key_id,
-                "latency_ms": round((time.time() - started) * 1000),
-            },
+            metadata=metadata,
         )
 
     def _default_candidate(self) -> ProviderCandidate:

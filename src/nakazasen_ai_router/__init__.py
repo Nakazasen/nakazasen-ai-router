@@ -1,6 +1,6 @@
 """Nakazasen AI Router public API."""
 
-from .capabilities import ModelCapability, capability_for, score_candidate_for_task
+from .capabilities import CostEstimate, ModelCapability, TokenUsage, capability_for, estimate_cost, normalize_token_usage, score_candidate_for_task
 from .config import create_live_free_first_router_from_env, create_router_from_env
 from .core import (
     AIRouteOutcome,
@@ -21,7 +21,8 @@ from .core import (
 )
 from .jobs import JobRecord, JobStatus, JobStore, SQLiteJobStore, sanitize_job_metadata
 from .metrics import MetricsSnapshot, collect_job_metrics, collect_metrics, collect_router_metrics
-from .quota import CapacityPolicy, InMemoryQuotaTracker, ProviderQuotaProfile, QuotaCheck, QuotaDecision, UsageSnapshot, sort_profiles_for_fallback
+from .quota import CapacityPolicy, InMemoryQuotaTracker, ProviderQuotaProfile, QuotaCheck, QuotaDecision, QuotaWindow, UsageSnapshot, sort_profiles_for_fallback
+from .routing import MODE_WEIGHTS, RoutingMode, RoutingScore, ScoreWeights, score_routing_candidate, weights_for_mode
 from .segmentation import ChunkingPolicy, WorkChunk, estimate_tokens, merge_chunk_texts, segment_text
 from .state import JsonStateStore, KeyModelState, MemoryStateStore
 from .storage_sqlite import SQLiteStateStore
@@ -54,12 +55,19 @@ __all__ = [
     "collect_job_metrics",
     "collect_metrics",
     "QuotaDecision",
+    "QuotaWindow",
     "CapacityPolicy",
     "ProviderQuotaProfile",
     "QuotaCheck",
     "UsageSnapshot",
     "InMemoryQuotaTracker",
     "sort_profiles_for_fallback",
+    "RoutingMode",
+    "ScoreWeights",
+    "RoutingScore",
+    "MODE_WEIGHTS",
+    "weights_for_mode",
+    "score_routing_candidate",
     "ChunkingPolicy",
     "WorkChunk",
     "estimate_tokens",
@@ -70,6 +78,10 @@ __all__ = [
     "MemoryStateStore",
     "SQLiteStateStore",
     "ModelCapability",
+    "TokenUsage",
+    "CostEstimate",
+    "normalize_token_usage",
+    "estimate_cost",
     "capability_for",
     "score_candidate_for_task",
 ]

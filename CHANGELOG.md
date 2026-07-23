@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+## 0.3.0 - 2026-07-23
+
+### Added
+
+- Explainable weighted auto-routing with built-in `balanced`, `fast`, `cheap`, `quality`, and `quota` mode packs and optional custom weights.
+- Thread-safe, process-local shared quota pools, named fixed windows, atomic reservations, headroom scoring, and estimated-to-actual token reconciliation.
+- Normalized provider token usage, catalog provenance fields, and conservative cost estimates that remain unknown when verified inputs are missing.
+- Bilingual release/packaging runbooks, an offline release consistency checker, and expanded human/AI architecture handoff documentation.
+
+### Changed
+
+- Sync and async routing now apply quota gates immediately before provider invocation and attach safe routing, provenance, and cost metadata to successful results.
+- OpenAI-compatible provider responses retain normalized usage only, not raw provider response data.
+- Public SDK exports now include routing mode/score types, quota windows, and usage/cost helpers.
+
+### Security
+
+- Quota snapshots explicitly report `process_local` scope and route attempts expose only coarse quota reasons.
+- Accounting and provenance metadata exclude raw keys, Authorization headers, prompts, and raw provider payloads.
+
+### Limitations
+
+- Shared quota pools are not distributed or multi-process coordination; profiles in one pool should use compatible policies.
+- Flexible quota windows are fixed windows rather than rolling/sliding windows.
+
 ## 0.2.3 - 2026-07-22
 
 ### Added
