@@ -77,6 +77,21 @@ from nakazasen_ai_router import AIRouter, AIRequest, RouterPolicy, create_router
 - `InMemoryQuotaTracker`
 - `sort_profiles_for_fallback`
 
+### Audited free-tier capacity
+
+- `FreeTierPlan`
+- `FreeTierBudget`
+- `FreeTierCatalog`
+- `DEFAULT_FREE_TIER_CATALOG`
+- `calculate_free_tier_budget`
+
+### Safe release awareness
+
+- `UpdateInfo`
+- `installed_version`
+- `check_for_updates`
+- `clear_update_cache`
+
 ## Host-application keys and startup catalog refresh
 
 A host application supplies provider keys through its own secret manager, environment, or private `env` mapping. The key is never supplied by this package:
@@ -108,6 +123,10 @@ Discovery is process-local and non-blocking: discovered chat models are placed b
 `InMemoryQuotaTracker` supports shared `pool_id` buckets and named fixed windows. It is thread-safe but process-local, not a distributed quota backend. Profiles sharing a pool should use compatible policies.
 
 Provider-reported usage is normalized to `TokenUsage`. Cost is marked `estimated` only when verified input/output prices and usage splits are available; otherwise its status is `unknown`. Cost estimates are operational guidance, not billing truth.
+
+`FreeTierCatalog.budget()` counts fresh fixed recurring allowances once per shared pool and separates one-time or uncountable plans. `AIRouter.free_tier_budget()` adds only process-local observed usage and labels it `estimated_local`. Provider dashboards remain authoritative.
+
+`check_for_updates()` is network-disabled by default and returns status data instead of raising on check failure. The explicit CLI apply path is intentionally outside request routing and uses a confirmed current-interpreter pip command.
 
 ## Compatibility promise
 

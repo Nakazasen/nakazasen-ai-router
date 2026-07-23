@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+## 0.4.0 - 2026-07-23
+
+### Added
+
+- Opt-in installed-version checks plus explicit `version`, `update --check`, and confirmed `update --apply` CLI commands.
+- Auditable free-tier plan/catalog/budget APIs with source, verification date, confidence, shared-pool deduplication, and human/JSON reporting.
+- Free-tier routing preference for `cheap` and `quota` modes, with process-local usage estimates labeled `estimated_local`.
+- Bilingual consumer update automation and free-tier interpretation guidance.
+
+### Changed
+
+- Environment router composition accepts a custom free-tier catalog.
+- Routing score metadata adds a backward-compatible appended free-tier component.
+
+### Security
+
+- Version checking has no default network access; import, startup, and routing never invoke pip or self-update.
+- Applying an update prints the exact current-interpreter pip command and requires confirmation unless `--yes` is explicitly supplied.
+- Free-tier preferences do not bypass provider allow/avoid policy, local-only, health, quota, or budget gates.
+
+### Limitations
+
+- The built-in audited recurring total is currently `0` because dynamic provider rate limits are not fabricated into fixed monthly grants.
+- Free-tier usage is a process-local estimate, not a provider-authoritative balance and not distributed coordination.
+
 ## 0.3.0 - 2026-07-23
 
 ### Added

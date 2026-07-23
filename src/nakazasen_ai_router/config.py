@@ -10,6 +10,7 @@ from typing import Any
 
 from .core import AIRouter, RouterPolicy
 from .discovery import discover_provider_models
+from .free_tiers import FreeTierCatalog
 from .http import HttpxAsyncHTTPClient, UrllibHTTPClient
 from .providers import OpenAICompatibleProvider
 from .quota import InMemoryQuotaTracker
@@ -36,6 +37,7 @@ def create_router_from_env(
     enable_async_network: bool = False,
     refresh_models_on_startup: bool = False,
     quota_tracker: InMemoryQuotaTracker | None = None,
+    free_tier_catalog: FreeTierCatalog | None = None,
 ) -> AIRouter:
     """Create an AIRouter from environment variables only.
 
@@ -68,7 +70,13 @@ def create_router_from_env(
                 _refresh_provider_models(profile, provider)
             providers.append(provider)
     effective_state_store = state_store or _state_store_from_path(state_path, state_backend)
-    return AIRouter(providers, policy=policy, state_store=effective_state_store, quota_tracker=quota_tracker)
+    return AIRouter(
+        providers,
+        policy=policy,
+        state_store=effective_state_store,
+        quota_tracker=quota_tracker,
+        free_tier_catalog=free_tier_catalog,
+    )
 
 
 def _refresh_provider_models(profile: ProviderProfile, provider: OpenAICompatibleProvider) -> None:

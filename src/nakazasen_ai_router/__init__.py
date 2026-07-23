@@ -21,8 +21,11 @@ from .core import (
 )
 from .jobs import JobRecord, JobStatus, JobStore, SQLiteJobStore, sanitize_job_metadata
 from .metrics import MetricsSnapshot, collect_job_metrics, collect_metrics, collect_router_metrics
+from .free_tier_catalog import DEFAULT_FREE_TIER_CATALOG
+from .free_tiers import FreeTierBudget, FreeTierCatalog, FreeTierPlan, LocalFreeTierUsageTracker, calculate_free_tier_budget
 from .quota import CapacityPolicy, InMemoryQuotaTracker, ProviderQuotaProfile, QuotaCheck, QuotaDecision, QuotaWindow, UsageSnapshot, sort_profiles_for_fallback
 from .routing import MODE_WEIGHTS, RoutingMode, RoutingScore, ScoreWeights, score_routing_candidate, weights_for_mode
+from .updates import UpdateInfo, check_for_updates, clear_update_cache, installed_version
 from .segmentation import ChunkingPolicy, WorkChunk, estimate_tokens, merge_chunk_texts, segment_text
 from .state import JsonStateStore, KeyModelState, MemoryStateStore
 from .storage_sqlite import SQLiteStateStore
@@ -54,6 +57,16 @@ __all__ = [
     "collect_router_metrics",
     "collect_job_metrics",
     "collect_metrics",
+    "FreeTierPlan",
+    "FreeTierBudget",
+    "FreeTierCatalog",
+    "LocalFreeTierUsageTracker",
+    "DEFAULT_FREE_TIER_CATALOG",
+    "calculate_free_tier_budget",
+    "UpdateInfo",
+    "installed_version",
+    "check_for_updates",
+    "clear_update_cache",
     "QuotaDecision",
     "QuotaWindow",
     "CapacityPolicy",

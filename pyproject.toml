@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nakazasen-ai-router"
-version = "0.3.0"
-description = "Embeddable Python AI provider router with explainable weighted routing, shared quota pools, and safe usage accounting."
+version = "0.4.0"
+description = "Embeddable Python AI provider router with explainable weighted routing, audited free-tier capacity, safe updates, and usage accounting."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Nakazasen" }]
@@ -26,6 +26,9 @@ dependencies = []
 Homepage = "https://github.com/Nakazasen/nakazasen-ai-router"
 Repository = "https://github.com/Nakazasen/nakazasen-ai-router"
 Issues = "https://github.com/Nakazasen/nakazasen-ai-router/issues"
+
+[project.scripts]
+nakazasen-ai-router = "nakazasen_ai_router.cli:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "build>=1"]

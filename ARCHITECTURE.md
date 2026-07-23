@@ -11,7 +11,8 @@ The router owns:
 - provider, model, and masked-key candidate selection;
 - explainable weighted ordering and fallback;
 - health, cooldown, and process-local quota decisions;
-- normalized token usage, catalog provenance, and conservative cost estimates;
+- normalized token usage, catalog provenance, conservative cost estimates, and audited free-tier reporting;
+- opt-in version awareness and explicit, confirmed package update commands;
 - sanitized outcomes, snapshots, and operational state.
 
 The host application owns:
@@ -19,7 +20,8 @@ The host application owns:
 - prompt/payload persistence and domain validation;
 - privacy classification and consent;
 - secret management and API-key rotation;
-- business budgets, billing truth, and distributed quota coordination;
+- package pin/update policy for its own environment;
+- business budgets, provider-reported balances, billing truth, and distributed quota coordination;
 - retry scheduling around durable route outcomes.
 
 > **Important:** `InMemoryQuotaTracker` is thread-safe but **process-local**. Shared pools coordinate router instances only when they use the same tracker object in one Python process. Multi-process or distributed deployments need an external atomic quota backend; this project does not claim distributed quota enforcement.
@@ -33,6 +35,9 @@ nakazasen-ai-router/
 │   ├── routing.py                 # Mode packs, normalized weights, score breakdown
 │   ├── quota.py                   # Shared pools, fixed windows, reservations, headroom
 │   ├── capabilities.py            # Catalog metadata, provenance, token/cost normalization
+│   ├── free_tiers.py              # Auditable plans, pool deduplication, budget math
+│   ├── free_tier_catalog.py       # Conservative built-in provider free-tier evidence
+│   ├── updates.py / cli.py        # Opt-in release checks and explicit update/report commands
 │   ├── config.py                  # Environment-driven composition and dependency injection
 │   ├── registry.py                # Built-in provider endpoint/model definitions
 │   ├── discovery.py               # Opt-in startup catalog refresh
@@ -65,14 +70,18 @@ flowchart LR
     Router --> Quota["quota.py process-local tracker"]
     Router --> State["state.py or SQLite state"]
     Router --> Catalog["capabilities.py catalog metadata"]
+    Router --> Free["free_tiers.py audited pool headroom"]
     Router --> Adapter["provider adapter"]
     Adapter --> API["Local or cloud AI endpoint"]
     Adapter --> Usage["Normalized token usage"]
     Usage --> Cost["Conservative cost estimate"]
     Catalog --> Score
     Catalog --> Cost
+    Free --> Score
     Router --> Result["Sanitized AIResult / outcome"]
     Result --> Host
+    Operator["Explicit CLI operator"] --> Updates["updates.py GitHub tag check"]
+    Updates --> Pip["Confirmed current-interpreter pip"]
 ```
 
 ### Core composition
@@ -139,9 +148,10 @@ Eligible candidates are ordered by explainable weighted signals:
 - latency;
 - capability cost tier;
 - quota headroom;
+- free-tier headroom in `cheap` and `quota` modes only;
 - static priority.
 
-Built-in mode packs are `balanced`, `fast`, `cheap`, `quality`, and `quota`. Callers may inject custom `ScoreWeights`. Every successful result includes the chosen mode, total score, and component signals; these values contain no prompt or raw key.
+Built-in mode packs are `balanced`, `fast`, `cheap`, `quality`, and `quota`. Callers may inject custom `ScoreWeights`. Every successful result includes the chosen mode, total score, and component signals; these values contain no prompt or raw key. Free-tier preference is never a policy exemption.
 
 ## Quota and capacity model
 
@@ -178,6 +188,16 @@ Flexible windows are **fixed windows**, not rolling/sliding windows. `snapshot()
 Provider adapters normalize common OpenAI and Gemini usage shapes into `TokenUsage`. Raw provider response payloads are not retained. `estimate_cost()` reports `estimated` only when verified input/output prices and the corresponding usage split are available. Otherwise it returns `unknown`; the router never invents pricing or token splits.
 
 Cost metadata is operational guidance, not a provider invoice. Host applications remain responsible for billing reconciliation and budget authority.
+
+## Free-tier catalog and local usage scope
+
+`FreeTierPlan` separates fixed recurring allowance, signup credit, and dynamic/unlimited status. A numeric monthly headline requires current source URL, verification date, confidence, and fixed token/period data. Plans sharing `pool_id` are counted once using the conservative minimum allowance. Card/top-up gated, terms-flagged, stale, uncertain, or incomplete plans do not receive routing preference.
+
+`AIRouter` records normalized successful tokens against a process-local period bucket for the matched free-tier pool. Reports are labeled `estimated_local`; restarts, other processes, other applications, and provider-side traffic are not visible. Provider dashboards remain authoritative. The built-in catalog intentionally reports zero numeric recurring monthly capacity until reproducible fixed grants exist.
+
+## Safe update subsystem
+
+`updates.py` performs no network access unless `enable_network=True`. The CLI is the only built-in apply surface: it checks tags, prints an exact `sys.executable -m pip` command targeting an immutable tag, and requires confirmation unless `--yes` is deliberately supplied. Import, router construction, and route lifecycles never invoke the checker or pip. Consumer repositories should use reviewable Dependabot/Renovate PRs for automation.
 
 ## State, privacy, and failure behavior
 

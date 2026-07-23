@@ -7,10 +7,10 @@ See [docs/provider_keys.md](docs/provider_keys.md) for API key setup, [examples/
 ## Stable install
 
 ```powershell
-pip install git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.3.0
+pip install git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.4.0
 ```
 
-Release notes: [0.3.0.md](docs/releases/0.3.0.md)
+Release notes: [0.4.0.md](docs/releases/0.4.0.md)
 
 Vietnamese documentation: [README.vi.md](README.vi.md)
 
@@ -31,8 +31,25 @@ Translation is intentionally only one example of a general-purpose workload.
 - Provides explainable weighted routing with balanced, fast, cheap, quality, and quota mode packs.
 - Supports thread-safe, process-local shared quota pools and named fixed windows.
 - Normalizes token usage and reports catalog provenance plus conservative cost estimates.
+- Provides an audited free-tier catalog, shared-pool deduplication, and free-first preference in `cheap`/`quota` modes.
+- Provides opt-in release checks and an explicit, confirmed update command; imports and routing never self-update.
 - Provides budget guard and exponential retry backoff.
 - Supports opt-in provider model catalog refresh at router startup.
+
+## Safe version awareness and free-tier audit
+
+Installed applications remain pinned until their owner explicitly upgrades them. Check or apply an update with:
+
+```powershell
+nakazasen-ai-router version
+nakazasen-ai-router update --check
+nakazasen-ai-router update --apply
+nakazasen-ai-router free-tiers --json
+```
+
+`update --apply` previews the exact `sys.executable -m pip` command and asks for confirmation. Use `--yes` only in a deliberately controlled non-interactive environment. The SDK performs no default version network request and never mutates an environment during import, router construction, or request routing.
+
+The free-tier report counts only sourced, fresh, numeric recurring allowances, deduplicated by shared pool. One-time credits and unlimited/dynamic plans are reported separately. The built-in catalog currently reports **0 audited recurring tokens/month** because supported providers publish dynamic limits rather than reproducible fixed monthly token grants. Nakazasen therefore does not claim OmniRoute's `1.53B` figure.
 
 ## Supported providers
 
@@ -109,5 +126,5 @@ A key file can use either a label followed by a value or `KEY=value` format. See
 - Never commit API keys, including `API Key.txt`.
 - Never print API keys or Authorization headers.
 - Keep application keys in environment variables or an external secret manager.
-- Network/live provider calls and startup model refresh are explicit opt-in.
+- Network/live provider calls, update checks, update application, and startup model refresh are explicit opt-in.
 - Unit tests are offline by default.

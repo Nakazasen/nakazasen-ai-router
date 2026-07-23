@@ -7,10 +7,10 @@ Xem [docs/provider_keys.vi.md](docs/provider_keys.vi.md) để cấu hình API k
 ## Cài bản stable
 
 ```powershell
-pip install git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.3.0
+pip install git+https://github.com/Nakazasen/nakazasen-ai-router.git@v0.4.0
 ```
 
-Ghi chú phát hành: [0.3.0.md](docs/releases/0.3.0.md)
+Ghi chú phát hành: [0.4.0.md](docs/releases/0.4.0.md)
 
 Nakazasen AI Router là lớp cung cấp năng lực AI đa nhiệm cho ứng dụng Python. Thư viện định tuyến request qua provider local/cloud, quản lý trạng thái provider/model/key và cho phép repo khác tích hợp AI mà không gắn core với một domain riêng. Dịch chương chỉ là một ví dụ về workload tổng quát.
 
@@ -26,7 +26,24 @@ Mặc định dự án theo hướng mock-first: unit test không gọi mạng v
 - Định tuyến có trọng số, giải thích được với các mode cân bằng, nhanh, rẻ, chất lượng và bảo toàn quota.
 - Hỗ trợ pool quota dùng chung và cửa sổ cố định linh hoạt, thread-safe trong một process.
 - Chuẩn hóa token usage, ghi nguồn catalog và ước tính chi phí thận trọng.
+- Catalog free-tier có nguồn kiểm chứng, chống đếm trùng shared pool và ưu tiên free-first ở mode `cheap`/`quota`.
+- Kiểm tra phiên bản theo opt-in và cập nhật tường minh có xác nhận; import/routing không bao giờ tự update.
 - Hỗ trợ quét catalog model mới lúc khởi động theo cơ chế opt-in.
+
+## Nhận biết phiên bản và kiểm toán free-tier
+
+Chương trình đã cài sẽ giữ nguyên phiên bản cho đến khi chủ ứng dụng chủ động nâng cấp. Các lệnh:
+
+```powershell
+nakazasen-ai-router version
+nakazasen-ai-router update --check
+nakazasen-ai-router update --apply
+nakazasen-ai-router free-tiers --json
+```
+
+`update --apply` hiển thị trước chính xác lệnh `sys.executable -m pip` và hỏi xác nhận. Chỉ dùng `--yes` trong môi trường tự động hóa đã được kiểm soát. SDK không gọi mạng để kiểm tra version theo mặc định và không tự sửa môi trường khi import, tạo router hay xử lý request.
+
+Báo cáo free-tier chỉ cộng quota định kỳ dạng số, có nguồn, còn mới và đã loại đếm trùng shared pool. Credit một lần và gói unlimited/dynamic nằm ở nhóm riêng. Catalog tích hợp hiện báo **0 token định kỳ/tháng đã kiểm toán**, vì các provider đang công bố giới hạn động chứ không phải grant token cố định theo tháng có thể tái lập. Vì vậy Nakazasen không tuyên bố con số `1.53B` của OmniRoute.
 
 ## Provider hiện hỗ trợ
 
@@ -103,5 +120,5 @@ File key hỗ trợ dạng nhãn rồi đến value hoặc `KEY=value`. Xem [doc
 - Không commit API key, bao gồm `API Key.txt`.
 - Không in API key hoặc Authorization header.
 - Ứng dụng tích hợp giữ key trong environment variables hoặc secret manager.
-- Gọi provider live và quét model lúc khởi động đều là opt-in.
+- Gọi provider live, kiểm tra/cài update và quét model lúc khởi động đều là opt-in.
 - Unit test mặc định offline.

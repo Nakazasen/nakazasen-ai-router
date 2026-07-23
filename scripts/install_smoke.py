@@ -28,6 +28,10 @@ def main() -> int:
         "InMemoryQuotaTracker",
         "collect_metrics",
         "QuotaDecision",
+        "FreeTierCatalog",
+        "DEFAULT_FREE_TIER_CATALOG",
+        "UpdateInfo",
+        "check_for_updates",
     }
     missing = required - set(nar.__all__)
     if missing:

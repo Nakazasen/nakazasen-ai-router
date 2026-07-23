@@ -215,7 +215,7 @@ class InMemoryQuotaTracker:
                         windows=windows,
                     ).__dict__,
                 })
-            return {"scope": "process_local", "profiles": profiles}
+            return {"scope": "process_local", "usage_scope": "estimated_local", "profiles": profiles}
 
     def _check_locked(self, profile: ProviderQuotaProfile | None, *, estimated_tokens: int, now: float) -> QuotaCheck:
         if profile is None:

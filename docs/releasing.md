@@ -52,7 +52,7 @@ A release may be committed, tagged, and pushed only when every applicable gate p
 
 ## Standard command sequence
 
-Replace `0.3.0` with the target version.
+Replace `0.4.0` with the target version.
 
 ```powershell
 # 1. Offline gates
@@ -62,7 +62,7 @@ py scripts/audit_docs_quality.py
 py scripts/audit_local_paths.py
 py scripts/audit_positioning.py
 py scripts/audit_text_encoding.py
-py scripts/release_check.py 0.3.0
+py scripts/release_check.py 0.4.0
 
 # 2. Build clean artifacts
 Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
@@ -74,7 +74,7 @@ $releaseVenv = Join-Path $env:TEMP "nakazasen-ai-router-release-venv"
 Remove-Item -Recurse -Force $releaseVenv -ErrorAction SilentlyContinue
 py -m venv $releaseVenv
 & "$releaseVenv\Scripts\python.exe" -m pip install --upgrade pip
-& "$releaseVenv\Scripts\python.exe" -m pip install .\dist\nakazasen_ai_router-0.3.0-py3-none-any.whl
+& "$releaseVenv\Scripts\python.exe" -m pip install .\dist\nakazasen_ai_router-0.4.0-py3-none-any.whl
 & "$releaseVenv\Scripts\python.exe" -I scripts\install_smoke.py
 
 # 4. Explicit live smoke (never print or stage the key file)
@@ -88,10 +88,10 @@ git ls-files -- "API Key.txt" ".env" ".env.*"
 
 # 6. Publish only after all gates pass
 git add <reviewed-files-only>
-git commit -m "feat: release v0.3.0"
-git tag -a v0.3.0 -m "Nakazasen AI Router 0.3.0"
+git commit -m "feat: release v0.4.0"
+git tag -a v0.4.0 -m "Nakazasen AI Router 0.4.0"
 git push origin main
-git push origin v0.3.0
+git push origin v0.4.0
 ```
 
 Delete the external `$releaseVenv` after verification; it is local build infrastructure, not a release artifact. Keeping the venv outside the repository also prevents repository-wide audits from scanning third-party packages.

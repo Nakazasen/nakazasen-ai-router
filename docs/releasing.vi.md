@@ -8,8 +8,8 @@ Bản tiếng Anh: [releasing.md](releasing.md)
 
 Dự án dùng Semantic Versioning khi vẫn ở giai đoạn pre-1.0:
 
-- **Patch** (`0.3.0` → `0.3.1`): sửa lỗi tương thích ngược hoặc cập nhật tài liệu.
-- **Minor** (`0.3.0` → `0.4.0`): thêm tính năng/API public tương thích ngược.
+- **Patch** (`0.4.0` → `0.4.1`): sửa lỗi tương thích ngược hoặc cập nhật tài liệu.
+- **Minor** (`0.4.0` → `0.5.0`): thêm tính năng/API public tương thích ngược.
 - **Major** (`0.x` → `1.0.0`): cam kết API ổn định; sau 1.0, thay đổi breaking tăng major.
 
 Phiên bản phải đồng nhất tại:
@@ -52,7 +52,7 @@ Chỉ commit/tag/push release khi mọi cổng áp dụng đều đạt:
 
 ## Chuỗi lệnh chuẩn
 
-Thay `0.3.0` bằng phiên bản cần phát hành.
+Thay `0.4.0` bằng phiên bản cần phát hành.
 
 ```powershell
 # 1. Offline gates
@@ -62,7 +62,7 @@ py scripts/audit_docs_quality.py
 py scripts/audit_local_paths.py
 py scripts/audit_positioning.py
 py scripts/audit_text_encoding.py
-py scripts/release_check.py 0.3.0
+py scripts/release_check.py 0.4.0
 
 # 2. Build artifact sạch
 Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
@@ -74,7 +74,7 @@ $releaseVenv = Join-Path $env:TEMP "nakazasen-ai-router-release-venv"
 Remove-Item -Recurse -Force $releaseVenv -ErrorAction SilentlyContinue
 py -m venv $releaseVenv
 & "$releaseVenv\Scripts\python.exe" -m pip install --upgrade pip
-& "$releaseVenv\Scripts\python.exe" -m pip install .\dist\nakazasen_ai_router-0.3.0-py3-none-any.whl
+& "$releaseVenv\Scripts\python.exe" -m pip install .\dist\nakazasen_ai_router-0.4.0-py3-none-any.whl
 & "$releaseVenv\Scripts\python.exe" -I scripts\install_smoke.py
 
 # 4. Live smoke tường minh (không in hoặc stage key file)
@@ -88,10 +88,10 @@ git ls-files -- "API Key.txt" ".env" ".env.*"
 
 # 6. Chỉ phát hành sau khi mọi gate đạt
 git add <chỉ-các-file-đã-review>
-git commit -m "feat: release v0.3.0"
-git tag -a v0.3.0 -m "Nakazasen AI Router 0.3.0"
+git commit -m "feat: release v0.4.0"
+git tag -a v0.4.0 -m "Nakazasen AI Router 0.4.0"
 git push origin main
-git push origin v0.3.0
+git push origin v0.4.0
 ```
 
 Xóa `$releaseVenv` nằm ngoài repository sau khi kiểm thử; đây là hạ tầng build local, không phải release artifact. Đặt venv ngoài repo cũng ngăn audit toàn repository quét dependency bên thứ ba.

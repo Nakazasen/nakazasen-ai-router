@@ -14,6 +14,8 @@ from typing import Any, Mapping, Sequence
 from datetime import datetime, timezone
 
 from .capabilities import ModelCapability, capability_for, estimate_cost, normalize_token_usage, score_candidate_for_task
+from .free_tier_catalog import DEFAULT_FREE_TIER_CATALOG
+from .free_tiers import FreeTierBudget, FreeTierCatalog, LocalFreeTierUsageTracker
 from .quota import InMemoryQuotaTracker, QuotaDecision
 from .routing import RoutingScore, ScoreWeights, score_routing_candidate
 from .state import MemoryStateStore, RouterStateStore
@@ -204,11 +206,23 @@ class AIRouter:
         policy: RouterPolicy | None = None,
         state_store: RouterStateStore | None = None,
         quota_tracker: InMemoryQuotaTracker | None = None,
+        free_tier_catalog: FreeTierCatalog | None = None,
+        free_tier_usage_tracker: LocalFreeTierUsageTracker | None = None,
     ) -> None:
         self.policy = policy or RouterPolicy()
         self.state_store = state_store or MemoryStateStore()
         self.quota_tracker = quota_tracker or InMemoryQuotaTracker()
+        self.free_tier_catalog = free_tier_catalog or DEFAULT_FREE_TIER_CATALOG
+        self.free_tier_usage_tracker = free_tier_usage_tracker or LocalFreeTierUsageTracker()
         self.providers = self._normalize(providers)
+
+    def free_tier_budget(self) -> FreeTierBudget:
+        """Return an audited headline using explicitly estimated local usage."""
+
+        return self.free_tier_catalog.budget(
+            usage_by_pool=self.free_tier_usage_tracker.snapshot(),
+            usage_scope="estimated_local",
+        )
 
     def route_outcome(self, request: AIRequest) -> AIRouteOutcome:
         """Route a request without raising for ordinary retry-later outcomes."""
@@ -333,6 +347,7 @@ class AIRouter:
                     self.state_store.record_success(provider.name, candidate.model, candidate.key_id, latency_ms=latency_ms)
                     self.quota_tracker.record_success(provider.name, candidate.model, candidate.key_id)
                     self._reconcile_usage(candidate, result, estimated_tokens)
+                    self._record_free_tier_usage(candidate, result, estimated_tokens)
                     success_attempt = self._attempt(provider, candidate, "success", latency_ms=latency_ms)
                     attempts.append(success_attempt)
                     merged_metadata = self._result_metadata(result, candidate, task_type)
@@ -438,6 +453,7 @@ class AIRouter:
                     self.state_store.record_success(provider.name, candidate.model, candidate.key_id, latency_ms=latency_ms)
                     self.quota_tracker.record_success(provider.name, candidate.model, candidate.key_id)
                     self._reconcile_usage(candidate, result, estimated_tokens)
+                    self._record_free_tier_usage(candidate, result, estimated_tokens)
                     success_attempt = self._attempt(provider, candidate, "success", latency_ms=latency_ms)
                     attempts.append(success_attempt)
                     merged_metadata = self._result_metadata(result, candidate, task_type)
@@ -518,6 +534,14 @@ class AIRouter:
         capability = self._candidate_capability(candidate)
         provider = candidate.provider
         quota_headroom = self.quota_tracker.headroom(provider.name, capability.model, candidate.key_id)
+        plan = self.free_tier_catalog.plan_for(provider.name, capability.model)
+        free_tier_headroom = 0.0
+        if plan is not None and plan.is_routing_eligible():
+            free_tier_headroom = self.free_tier_catalog.routing_headroom(
+                provider.name,
+                capability.model,
+                usage_by_pool=self.free_tier_usage_tracker.snapshot(),
+            )
         return score_routing_candidate(
             task_score=score_candidate_for_task(capability, task_type, self.policy.quality_preference),
             cost_tier=capability.cost_tier,
@@ -525,6 +549,7 @@ class AIRouter:
             failure_count=provider.health.failure_count,
             latency_ms=provider.health.last_latency_ms,
             quota_headroom=quota_headroom,
+            free_tier_headroom=free_tier_headroom,
             priority=candidate.priority,
             mode=self.policy.routing_mode,
             weights=self.policy.score_weights,
@@ -563,6 +588,14 @@ class AIRouter:
                 actual_tokens=usage.total_tokens,
             )
 
+    def _record_free_tier_usage(self, candidate: ProviderCandidate, result: AIResult, estimated_tokens: int) -> None:
+        plan = self.free_tier_catalog.plan_for(candidate.provider.name, candidate.model)
+        if plan is None or not plan.pool_id:
+            return
+        usage = normalize_token_usage(result.metadata.get("token_usage") if isinstance(result.metadata, Mapping) else None)
+        tokens = usage.total_tokens if usage.total_tokens > 0 else max(0, int(estimated_tokens or 0))
+        self.free_tier_usage_tracker.record(plan.pool_id, tokens)
+
     def _result_metadata(self, result: AIResult, candidate: ProviderCandidate, task_type: str) -> dict[str, Any]:
         metadata = dict(result.metadata)
         capability = capability_for(candidate.provider.name, candidate.model, self.policy.capability_overrides)
@@ -576,6 +609,17 @@ class AIRouter:
             "confidence": capability.confidence,
             "terms_note": capability.terms_note,
         }
+        plan = self.free_tier_catalog.plan_for(candidate.provider.name, candidate.model)
+        if plan is not None:
+            metadata["free_tier"] = {
+                "pool_id": plan.pool_id,
+                "status": plan.status,
+                "routing_eligible": plan.is_routing_eligible(),
+                "monthly_tokens": plan.monthly_tokens() if plan.is_auditable() else None,
+                "usage_scope": "estimated_local",
+                "source_url": plan.source_url,
+                "verified_at": plan.verified_at,
+            }
         metadata["cost_estimate"] = estimate_cost(usage, capability).to_dict()
         return sanitize_mapping(metadata)
 
